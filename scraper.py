@@ -1,20 +1,27 @@
 import json
 import re
 import os
-# --- ★ここを修正/確認してください★ ---
-from playwright.sync_api import sync_playwright 
-# ------------------------------------
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-    
+from datetime import datetime
+
+# ターゲットURL
 URL = "https://beyblade.takaratomy.co.jp/beyblade-x/event/schedule.html#schedule"
 
 def get_color_class(event_type):
-    # ... (この関数は変更なし) ...
+    """イベント種別に基づいてCSSクラスを決定（JSロジックと同期）"""
     if "G3大会（レギュラー" in event_type or "レギュラークラス" in event_type:
         return 'G3(R)'
     elif "G3大会（オープン" in event_type or "オープンクラス" in event_type:
         return 'G3(O)'
-    # ... (その他のロジック) ...
+    elif "S1イベント" in event_type:
+        return 'S1'
+    elif "アンバサダーイベント" in event_type:
+        return 'Amb'
+    elif "G2大会" in event_type:
+        return 'G2'
+    elif "G1大会" in event_type:
+        return 'G1'
     else:
         return 'その他'
 
@@ -22,37 +29,34 @@ def scrape_beyblade_events_dynamic():
     """Playwrightを使用して動的に読み込まれたイベントデータを抽出する"""
     events_data = []
     
-    # 💡 Playwrightのセットアップと実行
     with sync_playwright() as p:
         try:
-            # GitHub Actions環境で動作させるために'chromium'を使用
             browser = p.chromium.launch()
             page = browser.new_page()
             
-            # ページにアクセス
-            # 修正前:
-            # page.goto(URL, wait_until="networkidle") 
+            print(f"Navigating to {URL}...")
             
-            # 修正後: タイムアウト時間を60秒に延長し、待機条件を "domcontentloaded" に緩和
-            print("Navigating with longer timeout...")
-            page.goto(URL, wait_until="domcontentloaded", timeout=60000) # 60秒待機
+            # 💡 タイムアウトを60秒に延長し、待機条件を緩和
+            page.goto(URL, wait_until="domcontentloaded", timeout=60000) 
             
-            # 💡 イベントリスト要素が出現するのを明示的に待機
-            # ページの読み込み後、動的要素（.event-list-item）が表示されるまで待つ
-            # タイムアウトは必要に応じて調整してください
-            print("Waiting for dynamic content to load...")
-            page.wait_for_selector('div.event-list-item', timeout=30000) 
+            # 💡 最も広い範囲のコンテンツブロックの出現を待機する
+            # スケジュール全体を囲むコンテナ要素を探す
+            print("Waiting for schedule container...")
+            page.wait_for_selector('div.schedule-container', timeout=30000) 
             
             # 完全にロードされたHTMLコンテンツを取得
             content = page.content()
-            
             browser.close()
 
             # Beautiful SoupでHTMLを解析
             soup = BeautifulSoup(content, 'html.parser')
+            
+            # イベント要素を全て取得
             event_elements = soup.find_all('div', class_='event-list-item')
             
-            # ... (ここからBeautifulSoupによるデータ抽出ロジックは前回と同様) ...
+            if not event_elements:
+                print("Warning: No event elements found on the page. Returning empty list.")
+                return []
             
             for item in event_elements:
                 try:
@@ -85,7 +89,8 @@ def scrape_beyblade_events_dynamic():
             return events_data
 
         except Exception as e:
-            print(f"Playwright execution error: {e}")
+            # Playwrightのエラーやその他の予期せぬエラーをここで捕捉
+            print(f"Playwright execution failed: {e}")
             return []
 
 def save_data(data):
@@ -97,14 +102,7 @@ def save_data(data):
 
 
 if __name__ == "__main__":
-    # ❌ 誤: extracted_data = scrape_beyblade_events()
-    # ✅ 正: 修正後の関数名 scrape_beyblade_events_dynamic を呼び出す
+    # 🚨 NameError修正: 正しい関数名を呼び出す
     extracted_data = scrape_beyblade_events_dynamic() 
-    if extracted_data:
-        save_data(extracted_data)
-
-
-if __name__ == "__main__":
-    extracted_data = scrape_beyblade_events()
     if extracted_data:
         save_data(extracted_data)
