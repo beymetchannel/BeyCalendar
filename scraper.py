@@ -93,7 +93,8 @@ def save_data(data):
 
 
 if __name__ == "__main__":
-    # 関数名を変更したため、呼び出しも変更
+    # ❌ 誤: extracted_data = scrape_beyblade_events()
+    # ✅ 正: 修正後の関数名 scrape_beyblade_events_dynamic を呼び出す
     extracted_data = scrape_beyblade_events_dynamic() 
     if extracted_data:
         save_data(extracted_data)
