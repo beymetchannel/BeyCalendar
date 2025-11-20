@@ -30,8 +30,12 @@ def scrape_beyblade_events_dynamic():
             page = browser.new_page()
             
             # ページにアクセス
-            print(f"Navigating to {URL}...")
-            page.goto(URL, wait_until="networkidle") # ネットワークが落ち着くまで待機
+            # 修正前:
+            # page.goto(URL, wait_until="networkidle") 
+            
+            # 修正後: タイムアウト時間を60秒に延長し、待機条件を "domcontentloaded" に緩和
+            print("Navigating with longer timeout...")
+            page.goto(URL, wait_until="domcontentloaded", timeout=60000) # 60秒待機
             
             # 💡 イベントリスト要素が出現するのを明示的に待機
             # ページの読み込み後、動的要素（.event-list-item）が表示されるまで待つ
