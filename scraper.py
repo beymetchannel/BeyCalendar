@@ -1,12 +1,10 @@
-import requests
-from bs4 import BeautifulSoup
 import json
 import re
-from datetime import datetime
 import os
-os.makedirs('data', exist_ok=True)
-with open('data/test.txt', 'w', encoding='utf-8') as f:
-    f.write(f"Test run at {datetime.now()}")
+# --- ★ここを修正/確認してください★ ---
+from playwright.sync_api import sync_playwright 
+# ------------------------------------
+from bs4 import BeautifulSoup
     
 URL = "https://beyblade.takaratomy.co.jp/beyblade-x/event/schedule.html#schedule"
 
