@@ -1,2 +1,4 @@
 requests
 beautifulsoup4
+# Playwrightを追加
+playwright
