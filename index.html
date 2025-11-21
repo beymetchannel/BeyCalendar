@@ -27,7 +27,7 @@
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            flex-grow: 1; /* 入力欄を広く取る */
+            flex-grow: 1; 
             max-width: 300px;
         }
         .search-container button {
@@ -51,7 +51,7 @@
         .day-cell:nth-child(7n) { background-color: #f0f8ff; } 
         .day-cell:nth-child(7n+1) { background-color: #fff0f0; } 
         
-        /* --- カラーラベルの定義 (省略) --- */
+        /* --- カラーラベルの定義 --- */
         .event-label { display: block; font-size: 0.75em; color: black; padding: 2px 4px; margin-bottom: 2px; border-radius: 3px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; }
         .label-yellow { background-color: #ffc107; }
         .label-orange { background-color: #fd7e14; color: white; }
@@ -86,151 +86,151 @@
             </div>
     </div>
 
-<script>
-    // 1. **全イベントデータ（データは非同期で読み込む）**
-    let ALL_BEYBLADE_EVENTS = [];
-    const TARGET_YEAR = 2025;
-    const TARGET_MONTH = 11; // 2025年11月を対象
-    
-    // DOM要素の参照
-    const searchButton = document.getElementById('search-button');
-    const addressInput = document.getElementById('address1-input');
-    const filterStatus = document.getElementById('filter-status');
+    <script>
+        // 1. **全イベントデータ（データは非同期で読み込む）**
+        let ALL_BEYBLADE_EVENTS = [];
+        const TARGET_YEAR = 2025;
+        const TARGET_MONTH = 11; // 2025年11月を対象
+        
+        // DOM要素の参照
+        const searchButton = document.getElementById('search-button');
+        const addressInput = document.getElementById('address1-input');
+        const filterStatus = document.getElementById('filter-status');
 
 
-    async function loadDataAndInitialize() {
-        try {
-            // ローカルファイルまたはGitHub Pagesからのデータ読み込み
-            const response = await fetch('./data/events.json'); 
-            if (!response.ok) {
-                // ファイルが存在しない、または読み込みに失敗した場合
-                throw new Error('イベントデータファイル (./data/events.json) の読み込みに失敗しました。ファイルがリポジトリ内に存在するか確認してください。');
+        async function loadDataAndInitialize() {
+            try {
+                // ローカルファイルまたはGitHub Pagesからのデータ読み込み
+                const response = await fetch('./data/events.json'); 
+                if (!response.ok) {
+                    throw new Error('イベントデータファイル (./data/events.json) の読み込みに失敗しました。ファイルがリポジトリ内に存在するか確認してください。');
+                }
+                ALL_BEYBLADE_EVENTS = await response.json();
+                
+                // データ読み込み後に初期検索（全表示）を実行
+                handleSearch(); 
+                console.log(`データを ${ALL_BEYBLADE_EVENTS.length} 件読み込みました。`);
+
+            } catch (error) {
+                filterStatus.textContent = `エラー: ${error.message}`;
+                // エラー時のフォールバックとして空のカレンダーを表示
+                generateCalendar([], TARGET_YEAR, TARGET_MONTH);
             }
-            ALL_BEYBLADE_EVENTS = await response.json();
+        }
+
+
+        // 2. イベント種別に基づいてCSSクラスを決定する関数
+        function getColorClass(eventType) {
+            if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
+                return { class: 'label-yellow', label: 'G3(R)' };
+            } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
+                return { class: 'label-orange', label: 'G3(O)' };
+            } else if (eventType.includes("S1イベント")) {
+                return { class: 'label-lightblue', label: 'S1' };
+            } else if (eventType.includes("アンバサダーイベント")) {
+                return { class: 'label-blue', label: 'Amb' };
+            } else if (eventType.includes("G2大会")) {
+                return { class: 'label-gray', label: 'G2' };
+            } else if (eventType.includes("G1大会")) {
+                return { class: 'label-black', label: 'G1' };
+            } else {
+                return { class: 'label-green', label: 'その他' }; 
+            }
+        }
+
+        // 3. カレンダーを生成するメインロジック
+        function generateCalendar(events, year, month) {
+            const date = new Date(year, month - 1, 1);
+            const monthStr = month.toString().padStart(2, '0');
+            const yearStr = year.toString();
+
+            document.getElementById('calendar-header').textContent = `${year}年 ${month}月 イベントカレンダー`;
+
+            const calendarGrid = document.getElementById('calendar-grid');
             
-            // データ読み込み後に初期検索（全表示）を実行
-            handleSearch(); 
-            console.log(`データを ${ALL_BEYBLADE_EVENTS.length} 件読み込みました。`);
+            // 既存のヘッダー行以外をクリア
+            Array.from(calendarGrid.children).slice(7).forEach(child => child.remove());
 
-        } catch (error) {
-            filterStatus.textContent = `エラー: ${error.message}`;
-            // エラー時のフォールバックとして空のカレンダーを表示
-            generateCalendar([], TARGET_YEAR, TARGET_MONTH);
-        }
-    }
+            const startDay = date.getDay(); 
+            const daysInMonth = new Date(year, month, 0).getDate();
 
+            // 前月の日付の空セルを埋める
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.classList.add('day-cell');
+                emptyCell.style.backgroundColor = '#f9f9f9'; 
+                calendarGrid.appendChild(emptyCell);
+            }
 
-    // 2. イベント種別に基づいてCSSクラスを決定する関数 (変更なし)
-    function getColorClass(eventType) {
-        if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
-            return { class: 'label-yellow', label: 'G3(R)' };
-        } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
-            return { class: 'label-orange', label: 'G3(O)' };
-        } else if (eventType.includes("S1イベント")) {
-            return { class: 'label-lightblue', label: 'S1' };
-        } else if (eventType.includes("アンバサダーイベント")) {
-            return { class: 'label-blue', label: 'Amb' };
-        } else if (eventType.includes("G2大会")) {
-            return { class: 'label-gray', label: 'G2' };
-        } else if (eventType.includes("G1大会")) {
-            return { class: 'label-black', label: 'G1' };
-        } else {
-            return { class: 'label-green', label: 'その他' }; 
-        }
-    }
+            // 今月の日付セルを生成
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('day-cell');
 
-    // 3. カレンダーを生成するメインロジック (変更なし)
-    function generateCalendar(events, year, month) {
-        const date = new Date(year, month - 1, 1);
-        const monthStr = month.toString().padStart(2, '0');
-        const yearStr = year.toString();
+                const dayNumber = document.createElement('span');
+                dayNumber.classList.add('day-number');
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
 
-        document.getElementById('calendar-header').textContent = `${year}年 ${month}月 イベントカレンダー`;
+                // イベントをフィルタリングし、セルに追加
+                const dayStrPadded = day.toString().padStart(2, '0');
+                const dateKey = `${yearStr}年 ${monthStr}月${dayStrPadded}日`;
+                const dateKeyAlternative = `${yearStr}年 ${monthStr.replace(/^0/, '')}月${day}日`; 
 
-        const calendarGrid = document.getElementById('calendar-grid');
-        
-        // 既存のヘッダー行以外をクリア
-        Array.from(calendarGrid.children).slice(7).forEach(child => child.remove());
+                const dailyEvents = events.filter(event => 
+                    event.date.includes(dateKey) || event.date.includes(dateKeyAlternative)
+                );
 
-        // 2025年11月1日は土曜日 (getDay()=6)
-        const startDay = date.getDay(); 
-        const daysInMonth = new Date(year, month, 0).getDate();
+                dailyEvents.forEach(event => {
+                    const { class: colorClass, label } = getColorClass(event.type);
+                    const eventLabel = document.createElement('span');
+                    eventLabel.classList.add('event-label', colorClass);
+                    // ホバーで詳細表示
+                    eventLabel.title = `${event.time} ${event.name} @ ${event.location}\n種別: ${event.type}\n詳細: ${event.details}`; 
+                    eventLabel.textContent = `${event.time.split('：')[0]}:${event.time.split('：')[1]} ${label}`;
+                    dayCell.appendChild(eventLabel);
+                });
 
-        // 前月の日付の空セルを埋める
-        for (let i = 0; i < startDay; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.classList.add('day-cell');
-            emptyCell.style.backgroundColor = '#f9f9f9'; 
-            calendarGrid.appendChild(emptyCell);
+                calendarGrid.appendChild(dayCell);
+            }
         }
 
-        // 今月の日付セルを生成
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayCell = document.createElement('div');
-            dayCell.classList.add('day-cell');
+        // 4. 検索機能の処理
+        function handleSearch() {
+            if (ALL_BEYBLADE_EVENTS.length === 0) {
+                filterStatus.textContent = "データを読み込み中です。しばらくお待ちください。";
+                return;
+            }
+            
+            const searchText = addressInput.value.trim().toLowerCase();
+            let filteredEvents = [];
+            
+            if (searchText === "") {
+                // 入力が空の場合は全表示
+                filteredEvents = ALL_BEYBLADE_EVENTS;
+                filterStatus.textContent = `全地域のイベントを表示中 (${filteredEvents.length}件)`;
+            } else {
+                // 入力値でアドレスをフィルタリング
+                filteredEvents = ALL_BEYBLADE_EVENTS.filter(event => 
+                    event.address && event.address.toLowerCase().includes(searchText)
+                );
+                filterStatus.textContent = `地域: "${searchText}" に一致する ${filteredEvents.length} 件のイベントを表示中`;
+            }
 
-            const dayNumber = document.createElement('span');
-            dayNumber.classList.add('day-number');
-            dayNumber.textContent = day;
-            dayCell.appendChild(dayNumber);
-
-            // イベントをフィルタリングし、セルに追加
-            const dayStrPadded = day.toString().padStart(2, '0');
-            const dateKey = `${yearStr}年 ${monthStr}月${dayStrPadded}日`;
-            const dateKeyAlternative = `${yearStr}年 ${monthStr.replace(/^0/, '')}月${day}日`; 
-
-            const dailyEvents = events.filter(event => 
-                event.date.includes(dateKey) || event.date.includes(dateKeyAlternative)
-            );
-
-            dailyEvents.forEach(event => {
-                const { class: colorClass, label } = getColorClass(event.type);
-                const eventLabel = document.createElement('span');
-                eventLabel.classList.add('event-label', colorClass);
-                // ホバーで詳細表示
-                eventLabel.title = `${event.time} ${event.name} @ ${event.location}\n種別: ${event.type}\n詳細: ${event.details}`; 
-                eventLabel.textContent = `${event.time.split('：')[0]}:${event.time.split('：')[1]} ${label}`;
-                dayCell.appendChild(eventLabel);
-            });
-
-            calendarGrid.appendChild(dayCell);
-        }
-    }
-
-    // 4. 検索機能の処理 (ロジックを復元)
-    function handleSearch() {
-        // ALL_BEYBLADE_EVENTSが空の場合は処理を中断
-        if (ALL_BEYBLADE_EVENTS.length === 0) return;
-        
-        const searchText = addressInput.value.trim().toLowerCase();
-        let filteredEvents = [];
-        
-        if (searchText === "") {
-            // 入力が空の場合は全表示
-            filteredEvents = ALL_BEYBLADE_EVENTS;
-            filterStatus.textContent = "全地域のイベントを表示中";
-        } else {
-            // 入力値でアドレスをフィルタリング
-            filteredEvents = ALL_BEYBLADE_EVENTS.filter(event => 
-                event.address && event.address.toLowerCase().includes(searchText)
-            );
-            filterStatus.textContent = `地域: "${searchText}" に一致する ${filteredEvents.length} 件のイベントを表示中`;
+            generateCalendar(filteredEvents, TARGET_YEAR, TARGET_MONTH);
         }
 
-        generateCalendar(filteredEvents, TARGET_YEAR, TARGET_MONTH);
-    }
+        // 5. イベントリスナーを設定
+        searchButton.addEventListener('click', handleSearch);
+        addressInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
 
-    // 5. イベントリスナーを設定 (欠落していた部分)
-    searchButton.addEventListener('click', handleSearch);
-    addressInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    });
+        // 初期処理の呼び出し
+        loadDataAndInitialize();
 
-    // 初期処理の呼び出し
-    loadDataAndInitialize();
-
-</script>
+    </script>
 </body>
 </html>
