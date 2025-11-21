@@ -53,6 +53,7 @@ def scrape_beyblade_events_dynamic():
             
             # イベント要素を全て取得
             event_elements = soup.find_all('div', class_='event-list-item')
+            print(f"DEBUG: Found {len(event_elements)} raw event elements.")
             
             if not event_elements:
                 print("Warning: No event elements found on the page. Returning empty list.")
@@ -85,7 +86,8 @@ def scrape_beyblade_events_dynamic():
                     
                 except AttributeError as e:
                     print(f"Skipping event due to missing tag: {e}")
-            
+
+            print(f"DEBUG: Successfully processed {len(events_data)} structured events.")
             return events_data
 
         except Exception as e:
