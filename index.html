@@ -3,234 +3,705 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ベイブレード X イベントカレンダー (検索機能付き)</title>
+    <title>ベイブレード X イベントカレンダー</title>
     <style>
-        /* --- スタイルは前回のカレンダーと同じものを維持 --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; }
-        h1 { text-align: center; color: #1c7a8a; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, Osaka, Arial, Helvetica, Verdana, sans-serif;
+            margin: 0; 
+            padding: 10px; 
+            background-color: #f4f4f4; 
+            overflow-x: hidden; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #505050; 
+            margin: 10px 0; 
+        }
         
-        /* --- 検索フォームのスタイル --- */
         .search-container { 
-            width: 90%; 
+            width: 100%; 
             max-width: 1000px; 
-            margin: 20px auto; 
-            padding: 20px; 
-            border: 1px solid #ddd; 
-            background-color: #e6f7ff; /* 薄い水色 */
-            border-radius: 8px;
+            margin: 10px auto; 
+            padding: 15px; 
+            background-color: #ffffff; 
             display: flex;
+            flex-wrap: wrap; 
             gap: 10px;
             align-items: center;
         }
-        .search-container label { font-weight: bold; }
-        .search-container input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            flex-grow: 1; 
-            max-width: 300px;
+        .search-container label { font-weight: bold; margin-right: 5px; }
+
+        .keyword-search-group {
+            display: flex;
+            align-items: flex-end; 
+            flex-basis: 100%;
+            flex-direction: column; 
         }
-        .search-container button {
-            padding: 8px 15px;
-            background-color: #1c7a8a;
-            color: white;
+        .keyword-search-input-wrapper {
+            display: flex;
+            width: 100%;
+        }
+        .keyword-search-group label {
+            font-size: 14px;
+            align-self: flex-start; 
+            margin-bottom: 5px;
+        }
+        .keyword-search-group input[type="text"] {
+            padding: 8px;
+            border: 1px solid #cccccc;
+            border-radius: 4px 0 0 4px; 
+            flex-grow: 1; 
+            margin: 0;
+        }
+        .search-button-icon {
+            padding: 8px 12px;
+            background-color: #dbdbdb; 
+            color: #505050; 
             border: none;
-            border-radius: 4px;
+            border-radius: 0 4px 4px 0; 
             cursor: pointer;
             transition: background-color 0.2s;
+            height: 36px; 
+            line-height: 1.2;
+            box-sizing: border-box;
         }
-        .search-container button:hover { background-color: #155c68; }
 
-        /* --- カレンダーグリッドのスタイル（一部抜粋） --- */
-        .calendar-container { width: 90%; max-width: 1000px; margin: 20px auto; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); background-color: #fff; }
-        .calendar-header { text-align: center; padding: 15px; background-color: #1c7a8a; color: white; font-size: 1.5em; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #ddd; border-top: 1px solid #ddd; }
-        .day-header { background-color: #e0e0e0; font-weight: bold; padding: 10px 5px; text-align: center; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; }
-        .day-cell { min-height: 100px; padding: 5px; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd; position: relative; }
-        .day-number { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 5px; display: block; }
-        .day-cell:nth-child(7n) { background-color: #f0f8ff; } 
-        .day-cell:nth-child(7n+1) { background-color: #fff0f0; } 
+        .calendar-container { 
+            width: 100%; 
+            max-width: 1000px; 
+            margin: 10px auto; 
+            border: 1px solid #cccccc; 
+            background-color: #ffffff; 
+        }
+        .calendar-grid-wrapper {
+            margin-top: 15px;
+            border-top: 1px solid #cccccc;
+        }
+        .calendar-grid-wrapper:first-child {
+            margin-top: 0;
+            border-top: none;
+        }
+
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            border-left: 1px solid #cccccc; 
+        }
+        .day-header { 
+            background-color: #f1f1f1; 
+            font-size: 10px; 
+            padding: 8px 5px; 
+            text-align: center; 
+            border-right: 1px solid #cccccc; 
+            border-bottom: 1px solid #cccccc; 
+            color: #505050;
+        }
+
+        .day-cell { min-height: 80px; padding: 5px; border-right: 1px solid #cccccc; border-bottom: 1px solid #cccccc; position: relative; overflow: hidden;}
         
-        /* --- カラーラベルの定義 --- */
-        .event-label { display: block; font-size: 0.75em; color: black; padding: 2px 4px; margin-bottom: 2px; border-radius: 3px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; }
-        .label-yellow { background-color: #ffc107; }
-        .label-orange { background-color: #fd7e14; color: white; }
-        .label-lightblue { background-color: #0dcaf0; }
-        .label-blue { background-color: #0d6efd; color: white; }
-        .label-gray { background-color: #6c757d; color: white; }
-        .label-black { background-color: #212529; color: white; }
-        .label-green { background-color: #198754; color: white; }
+        .day-number { 
+            font-size: 10px; 
+            color: #505050; 
+            margin-bottom: 3px; 
+            display: block; 
+            text-align: center; 
+        }
+        .calendar-grid .day-cell:nth-child(7n) .day-number { 
+            color: #5555cc; 
+        }
+        .calendar-grid .day-cell:nth-child(7n+1) .day-number { 
+            color: #cc5588; 
+        }
+        .day-cell:nth-child(7n) { background-color: #f4f4f4; } 
+        .day-cell:nth-child(7n+1) { background-color: #f4f4f4; } 
+        
+        .event-label { 
+            text-align: center;
+            display: block; 
+            font-size: 10px; 
+            padding: 2px 0px; 
+            margin-bottom: 1px; 
+            border-radius: 3px; 
+            font-weight: 600; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            cursor: pointer;
+        }
+        .label-yellow { background-color: #FFC75F; color: #505050; } 
+        .label-orange { background-color: #FF9772; color: #505050; } 
+        .label-lightblue { background-color: #6de7d7; color: #505050; } 
+        .label-blue { background-color: #6de7b8; color: #505050; } 
+        .label-gray { background-color: #f06163; color: white; } 
+        .label-black { background-color: #845EC2; color: white; } 
+        .label-green { background-color: #FAF871; color: #505050; }
+        
+        .pref-label {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f4f4f4; 
+            font-size: 0.8em;
+            user-select: none;
+            transition: background-color 0.1s;
+        }
+        .pref-label input[type="checkbox"] { display: none; }
+        .pref-label.checked {
+            background-color: #B3FF52; 
+            color: #505050;
+            font-weight: bold;
+        }
+
+        .region-group {
+            margin-bottom: 5px;
+            border-bottom: 1px dashed #cccccc;
+        }
+        .region-header-container { 
+            display: flex;
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 5px 0;
+            cursor: pointer;
+        }
+        .region-header {
+            font-weight: bold;
+            color: #505050;
+            border-left: 3px solid #B3FF52; 
+            padding-left: 10px;
+            margin: 0; 
+            flex-grow: 1; 
+        }
+        
+        .region-select-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: normal; 
+            margin-left: 5px;
+            color: #505050;
+        }
+        .region-select-checkbox {
+            margin-right: 3px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        .checkbox-wrapper.open {
+            max-height: 500px; 
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        #event-modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7); 
+            backdrop-filter: blur(2px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modal-content {
+            background-color: #ffffff;
+            margin: 15% auto; 
+            padding: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            width: 90%; 
+            max-width: 500px; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        #modal-content h3 {
+            color: #505050; 
+            border-bottom: 2px solid #B3FF52;
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+        
+        #modal-content p {
+            margin: 5px 0;
+            line-height: 1.5;
+            border-bottom: 0.5px solid #cccccc;
+            color: #505050;
+            word-break: break-word; 
+        }
+        
+        #modal-content strong {
+            display: inline-block;
+            width: 50px;
+            color: #505050;
+        }
+        
+        #label-legend-container {
+            width: 100%;
+            margin: 0px; 
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: center;
+            align-items: center;
+            font-size: 9px;
+            color: #505050;
+            gap: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            white-space: nowrap; 
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 5px;
+            border: 1px solid #c0c0c0; /* 見やすいように枠線を追加 */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
-
-    <h1>ベイブレード X イベントカレンダー</h1>
-    
     <div class="search-container">
-        <label for="address1-input">地域名 (address1):</label>
-        <input type="text" id="address1-input" placeholder="例: 山形県、東京都、大阪">
-        <button id="search-button">検索 / 全表示</button>
+        <div style="flex-basis: 100%;">
+            <div id="prefecture-checkbox-container" style="border: 1px solid #cccccc; padding: 5px; border-radius: 4px; background-color: #ffffff;">
+                データ読み込み中...
+            </div>
+        </div>
+        
+        <div class="keyword-search-group" style="margin-top: 10px;color: #505050;">
+            <label for="city-input">キーワード検索:</label>
+            <div class="keyword-search-input-wrapper">
+                <input type="text" id="city-input" placeholder="市町村名やイベント名など">
+                <button id="search-button" class="search-button-icon">🔍</button>
+            </div>
+        </div>
+        <div id="filter-status" style="color: #505050;font-size:10px;"></div>
+
     </div>
-    <div id="filter-status" style="text-align: center; margin-top: -10px; margin-bottom: 10px; font-weight: bold;"></div>
-    
+  
+    <div id="label-legend-container">
+        <div class="legend-item"><span class="legend-color label-black"></span>G1</div>
+        <div class="legend-item"><span class="legend-color label-gray"></span>G2</div>
+        <div class="legend-item"><span class="legend-color label-yellow"></span>G3(R)</div>
+        <div class="legend-item"><span class="legend-color label-orange"></span>G3(O)</div>
+        <div class="legend-item"><span class="legend-color label-lightblue"></span>S1</div>
+        <div class="legend-item"><span class="legend-color label-blue"></span>アンバサダー</div>
+        <div class="legend-item"><span class="legend-color label-green"></span>その他</div>
+    </div>
+
     <div class="calendar-container">
-        <div id="calendar-header" class="calendar-header"></div>
-        <div id="calendar-grid" class="calendar-grid">
-            <div class="day-header">日</div>
-            <div class="day-header">月</div>
-            <div class="day-header">火</div>
-            <div class="day-header">水</div>
-            <div class="day-header">木</div>
-            <div class="day-header">金</div>
-            <div class="day-header">土</div>
+        <div id="calendar-wrapper">
             </div>
     </div>
 
-    <script>
-        // 1. **全イベントデータ（データは非同期で読み込む）**
-        let ALL_BEYBLADE_EVENTS = [];
-        const TARGET_YEAR = 2025;
-        const TARGET_MONTH = 11; // 2025年11月を対象
+    <div id="event-modal" style="display: none;">
+        <div id="modal-content">
+            </div>
+    </div>
+
+<script>
+    const JAPAN_PREFECTURES_BY_REGION = {
+        "北海道": ["北海道"],
+        "東北地方": ["青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"],
+        "関東地方": ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"],
+        "中部地方": ["新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県", "静岡県", "愛知県"],
+        "近畿地方": ["三重県", "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"],
+        "中国地方": ["鳥取県", "島根県", "岡山県", "広島県", "山口県"],
+        "四国地方": ["徳島県", "香川県", "愛媛県", "高知県"],
+        "九州・沖縄地方": ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"]
+    };
+
+    let TARGET_START_YEAR = new Date().getFullYear(); 
+    let TARGET_START_MONTH = new Date().getMonth() + 1; 
+    let TARGET_MAX_DATE = new Date(); 
+
+    let ALL_BEYBLADE_EVENTS = [];
+    
+    const searchButton = document.getElementById('search-button');
+    const prefectureContainer = document.getElementById('prefecture-checkbox-container');
+    const cityInput = document.getElementById('city-input'); 
+    const filterStatus = document.getElementById('filter-status');
+    const calendarWrapper = document.getElementById('calendar-wrapper');
+    const eventModal = document.getElementById('event-modal');
+    const modalContent = document.getElementById('modal-content');
+
+
+    function parseDate(dateStr) {
+        const match = dateStr.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+        if (!match) return null;
         
-        // DOM要素の参照
-        const searchButton = document.getElementById('search-button');
-        const addressInput = document.getElementById('address1-input');
-        const filterStatus = document.getElementById('filter-status');
+        return {
+            year: parseInt(match[1], 10),
+            month: parseInt(match[2], 10), 
+            day: parseInt(match[3], 10)
+        };
+    }
 
+    function showEventDetails(event) {
+        modalContent.innerHTML = `
+            <h3>${event.name}</h3>
+            <p><strong>日付:</strong> ${event.date}</p>
+            <p><strong>時間:</strong> ${event.time}</p>
+            <p><strong>種別:</strong> ${event.type}</p>
+            <p><strong>会場:</strong> ${event.location}</p>
+            <p><strong>住所:</strong> ${event.address}</p>
+            <p><strong>詳細:</strong> ${event.details || '詳細情報はありません'}</p>
+        `;
+        
+        eventModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; 
+    }
 
-        async function loadDataAndInitialize() {
-            try {
-                // ローカルファイルまたはGitHub Pagesからのデータ読み込み
-                const response = await fetch('./data/events.json'); 
-                if (!response.ok) {
-                    throw new Error('イベントデータファイル (./data/events.json) の読み込みに失敗しました。ファイルがリポジトリ内に存在するか確認してください。');
-                }
-                ALL_BEYBLADE_EVENTS = await response.json();
-                
-                // データ読み込み後に初期検索（全表示）を実行
-                handleSearch(); 
-                console.log(`データを ${ALL_BEYBLADE_EVENTS.length} 件読み込みました。`);
-
-            } catch (error) {
-                filterStatus.textContent = `エラー: ${error.message}`;
-                // エラー時のフォールバックとして空のカレンダーを表示
-                generateCalendar([], TARGET_YEAR, TARGET_MONTH);
-            }
+    function closeEventModal() {
+        eventModal.style.display = 'none';
+        document.body.style.overflow = 'hidden'; 
+    }
+    
+    eventModal.addEventListener('click', (e) => {
+        if (e.target === eventModal) {
+            closeEventModal();
         }
+    });
 
-
-        // 2. イベント種別に基づいてCSSクラスを決定する関数
-        function getColorClass(eventType) {
-            if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
-                return { class: 'label-yellow', label: 'G3(R)' };
-            } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
-                return { class: 'label-orange', label: 'G3(O)' };
-            } else if (eventType.includes("S1イベント")) {
-                return { class: 'label-lightblue', label: 'S1' };
-            } else if (eventType.includes("アンバサダーイベント")) {
-                return { class: 'label-blue', label: 'Amb' };
-            } else if (eventType.includes("G2大会")) {
-                return { class: 'label-gray', label: 'G2' };
-            } else if (eventType.includes("G1大会")) {
-                return { class: 'label-black', label: 'G1' };
-            } else {
-                return { class: 'label-green', label: 'その他' }; 
-            }
-        }
-
-        // 3. カレンダーを生成するメインロジック
-        function generateCalendar(events, year, month) {
-            const date = new Date(year, month - 1, 1);
-            const monthStr = month.toString().padStart(2, '0');
-            const yearStr = year.toString();
-
-            document.getElementById('calendar-header').textContent = `${year}年 ${month}月 イベントカレンダー`;
-
-            const calendarGrid = document.getElementById('calendar-grid');
+    async function loadDataAndInitialize() {
+        try {
+            const response = await fetch('./events.json'); 
             
-            // 既存のヘッダー行以外をクリア
-            Array.from(calendarGrid.children).slice(7).forEach(child => child.remove());
+            if (!response.ok) {
+                throw new Error('スケジュールデータ (events.json) の読み込みに失敗しました。');
+            }
+            
+            const fetchedJson = await response.json();
+            
+            ALL_BEYBLADE_EVENTS = fetchedJson
+                .map(event => ({
+                    ...event,
+                    parsedDate: parseDate(event.date)
+                }))
+                .filter(event => event.parsedDate);
 
+            if (ALL_BEYBLADE_EVENTS.length > 0) {
+                const dates = ALL_BEYBLADE_EVENTS.map(event => new Date(event.parsedDate.year, event.parsedDate.month - 1, event.parsedDate.day));
+                
+                const minDate = new Date(Math.min(...dates));
+                TARGET_MAX_DATE = new Date(Math.max(...dates));
+
+                TARGET_START_YEAR = minDate.getFullYear();
+                TARGET_START_MONTH = minDate.getMonth() + 1;
+            }
+            
+            populatePrefectureSelect();
+            
+            handleSearch(false); 
+            filterStatus.textContent = `${ALL_BEYBLADE_EVENTS.length} 件のイベントを読み込みました。`;
+
+        } catch (error) {
+            filterStatus.textContent = `エラー: ${error.message}`;
+            generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+        }
+    }
+
+    function populatePrefectureSelect() {
+        prefectureContainer.innerHTML = ''; 
+
+        for (const region in JAPAN_PREFECTURES_BY_REGION) {
+            const prefectures = JAPAN_PREFECTURES_BY_REGION[region];
+            
+            const regionGroup = document.createElement('div');
+            regionGroup.classList.add('region-group');
+
+            const headerContainer = document.createElement('div');
+            headerContainer.classList.add('region-header-container');
+            
+            const headerTitle = document.createElement('div');
+            headerTitle.classList.add('region-header');
+            headerTitle.textContent = region;
+            
+            const regionCheckbox = document.createElement('input');
+            regionCheckbox.type = 'checkbox';
+            regionCheckbox.classList.add('region-select-checkbox');
+            regionCheckbox.id = `region-select-${region}`;
+            
+            const regionCheckboxLabel = document.createElement('label');
+            regionCheckboxLabel.classList.add('region-select-label');
+            regionCheckboxLabel.setAttribute('for', regionCheckbox.id);
+            regionCheckboxLabel.appendChild(regionCheckbox);
+            
+            regionCheckboxLabel.appendChild(document.createTextNode('全選択')); 
+
+            headerContainer.appendChild(headerTitle);
+            headerContainer.appendChild(regionCheckboxLabel);
+            regionGroup.appendChild(headerContainer); 
+
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.classList.add('checkbox-wrapper');
+            
+            prefectures.forEach(pref => {
+                const label = document.createElement('label');
+                label.classList.add('pref-label');
+                label.setAttribute('data-region', region); 
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = pref;
+                checkbox.name = 'prefecture';
+                
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(pref));
+                
+                checkbox.addEventListener('change', () => {
+                    label.classList.toggle('checked', checkbox.checked); 
+                    updateRegionCheckboxState(region);
+                    handleSearch(); 
+                });
+
+                checkboxWrapper.appendChild(label);
+            });
+
+            regionGroup.appendChild(checkboxWrapper);
+            prefectureContainer.appendChild(regionGroup);
+
+            headerTitle.addEventListener('click', () => {
+                checkboxWrapper.classList.toggle('open');
+            });
+            
+            regionCheckbox.addEventListener('change', () => {
+                const select = regionCheckbox.checked;
+                toggleRegionSelection(region, select);
+                handleSearch(); 
+            });
+            
+             regionCheckboxLabel.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+            });
+        }
+    }
+
+    function updateRegionCheckboxState(region) {
+        const total = prefectureContainer.querySelectorAll(`[data-region="${region}"] input[type="checkbox"]`).length;
+        const checked = prefectureContainer.querySelectorAll(`[data-region="${region}"] input[type="checkbox"]:checked`).length;
+        
+        const regionCheckbox = document.getElementById(`region-select-${region}`);
+
+        if (!regionCheckbox) return;
+
+        if (checked === 0) {
+            regionCheckbox.checked = false;
+            regionCheckbox.indeterminate = false; 
+        } else if (checked === total) {
+            regionCheckbox.checked = true;
+            regionCheckbox.indeterminate = false;
+        } else {
+            regionCheckbox.checked = false;
+            regionCheckbox.indeterminate = true;
+        }
+    }
+
+
+    function toggleRegionSelection(region, select) {
+        prefectureContainer.querySelectorAll(`[data-region="${region}"]`).forEach(label => {
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = select;
+                label.classList.toggle('checked', select);
+            }
+        });
+    }
+
+    function getColorClass(eventType) {
+        if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
+            return { class: 'label-yellow', label: '' };
+        } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
+            return { class: 'label-orange', label: '' };
+        } else if (eventType.includes("S1イベント")) {
+            return { class: 'label-lightblue', label: '' };
+        } else if (eventType.includes("アンバサダーイベント")) {
+            return { class: 'label-blue', label: '' };
+        } else if (eventType.includes("G2大会")) {
+            return { class: 'label-gray', label: '' };
+        } else if (eventType.includes("G1大会")) {
+            return { class: 'label-black', label: '' };
+        } else {
+            return { class: 'label-green', label: '' }; 
+        }
+    }
+
+    function generateCalendar(events, startYear, startMonth, maxDate) {
+        calendarWrapper.innerHTML = ''; 
+        
+        const maxYear = maxDate.getFullYear();
+        const maxMonth = maxDate.getMonth() + 1;
+
+        let currentYear = startYear;
+        let currentMonth = startMonth;
+
+        while (currentYear < maxYear || (currentYear === maxYear && currentMonth <= maxMonth)) {
+            
+            const date = new Date(currentYear, currentMonth - 1, 1);
+            
+            const gridWrapperContainer = document.createElement('div');
+            gridWrapperContainer.classList.add('calendar-grid-wrapper');
+
+            const gridWrapper = document.createElement('div');
+            gridWrapper.classList.add('calendar-grid');
+            gridWrapper.innerHTML = `
+                <div class="day-header">日</div>
+                <div class="day-header">月</div>
+                <div class="day-header">火</div>
+                <div class="day-header">水</div>
+                <div class="day-header">木</div>
+                <div class="day-header">金</div>
+                <div class="day-header">土</div>
+            `;
+            
             const startDay = date.getDay(); 
-            const daysInMonth = new Date(year, month, 0).getDate();
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate(); 
 
-            // 前月の日付の空セルを埋める
             for (let i = 0; i < startDay; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.classList.add('day-cell');
                 emptyCell.style.backgroundColor = '#f9f9f9'; 
-                calendarGrid.appendChild(emptyCell);
+                gridWrapper.appendChild(emptyCell);
             }
 
-            // 今月の日付セルを生成
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayCell = document.createElement('div');
                 dayCell.classList.add('day-cell');
-
+                
                 const dayNumber = document.createElement('span');
                 dayNumber.classList.add('day-number');
-                dayNumber.textContent = day;
+                
+                dayNumber.textContent = `${currentMonth}/${day}`;
+                
                 dayCell.appendChild(dayNumber);
 
-                // イベントをフィルタリングし、セルに追加
-                const dayStrPadded = day.toString().padStart(2, '0');
-                const dateKey = `${yearStr}年 ${monthStr}月${dayStrPadded}日`;
-                const dateKeyAlternative = `${yearStr}年 ${monthStr.replace(/^0/, '')}月${day}日`; 
-
-                const dailyEvents = events.filter(event => 
-                    event.date.includes(dateKey) || event.date.includes(dateKeyAlternative)
-                );
+                const dailyEvents = events.filter(event => {
+                    const pd = event.parsedDate;
+                    return pd && pd.year === currentYear && pd.month === currentMonth && pd.day === day;
+                });
 
                 dailyEvents.forEach(event => {
                     const { class: colorClass, label } = getColorClass(event.type);
                     const eventLabel = document.createElement('span');
                     eventLabel.classList.add('event-label', colorClass);
-                    // ホバーで詳細表示
-                    eventLabel.title = `${event.time} ${event.name} @ ${event.location}\n種別: ${event.type}\n詳細: ${event.details}`; 
-                    eventLabel.textContent = `${event.time.split('：')[0]}:${event.time.split('：')[1]} ${label}`;
+                    
+                    const timeParts = event.time.split('：');
+                    const displayTime = timeParts.length === 2 ? `${timeParts[0]}:${timeParts[1]}` : event.time;
+
+                    eventLabel.textContent = `${displayTime} ${label}`;
+                    
+                    eventLabel.onclick = (e) => {
+                        e.stopPropagation(); 
+                        showEventDetails(event);
+                    };
+
                     dayCell.appendChild(eventLabel);
                 });
 
-                calendarGrid.appendChild(dayCell);
+                gridWrapper.appendChild(dayCell);
+            }
+
+            gridWrapperContainer.appendChild(gridWrapper);
+            calendarWrapper.appendChild(gridWrapperContainer);
+
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
             }
         }
+    }
 
-        // 4. 検索機能の処理
-        function handleSearch() {
-            if (ALL_BEYBLADE_EVENTS.length === 0) {
-                filterStatus.textContent = "データを読み込み中です。しばらくお待ちください。";
-                return;
-            }
-            
-            const searchText = addressInput.value.trim().toLowerCase();
-            let filteredEvents = [];
-            
-            if (searchText === "") {
-                // 入力が空の場合は全表示
-                filteredEvents = ALL_BEYBLADE_EVENTS;
-                filterStatus.textContent = `全地域のイベントを表示中 (${filteredEvents.length}件)`;
-            } else {
-                // 入力値でアドレスをフィルタリング
-                filteredEvents = ALL_BEYBLADE_EVENTS.filter(event => 
-                    event.address && event.address.toLowerCase().includes(searchText)
-                );
-                filterStatus.textContent = `地域: "${searchText}" に一致する ${filteredEvents.length} 件のイベントを表示中`;
-            }
+    function handleSearch(updateStatus = true) {
+        if (ALL_BEYBLADE_EVENTS.length === 0) {
+            generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+            return;
+        }
+        
+        const selectedPrefectures = Array.from(prefectureContainer.querySelectorAll('input[type="checkbox"]:checked'))
+            .filter(cb => !cb.classList.contains('region-select-checkbox')) 
+            .map(checkbox => checkbox.value.toLowerCase());
+        
+        const citySearchText = cityInput.value.trim().toLowerCase();
+        
+        let filteredEvents = ALL_BEYBLADE_EVENTS;
+        
+        let filterDescription = [];
 
-            generateCalendar(filteredEvents, TARGET_YEAR, TARGET_MONTH);
+        if (selectedPrefectures.length > 0) {
+            filteredEvents = filteredEvents.filter(event => {
+                const searchTarget = [
+                    event.address, 
+                    event.location,
+                    event.name,
+                    event.details
+                ].join(' ').toLowerCase();
+                
+                return selectedPrefectures.some(pref => searchTarget.includes(pref));
+            });
+            filterDescription.push(`都道府県: ${selectedPrefectures.join('、').toUpperCase()}`);
         }
 
-        // 5. イベントリスナーを設定
-        searchButton.addEventListener('click', handleSearch);
-        addressInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleSearch();
-            }
-        });
+        if (citySearchText !== "") {
+            filteredEvents = filteredEvents.filter(event => {
+                const searchTarget = [
+                    event.address, 
+                    event.location,
+                    event.name,
+                    event.details
+                ].join(' ').toLowerCase();
 
-        // 初期処理の呼び出し
-        loadDataAndInitialize();
+                return searchTarget.includes(citySearchText);
+            });
+            filterDescription.push(`キーワード: "${citySearchText}"`);
+        }
+        
+        if (updateStatus) {
+            const descriptionText = filterDescription.length > 0 
+                ? `${filterDescription.join(' / ')} に一致する ${filteredEvents.length} 件のイベントを表示中`
+                : `全地域のイベントを表示中 (${ALL_BEYBLADE_EVENTS.length}件)。`; 
+            filterStatus.textContent = descriptionText;
+        }
+        
+        generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+    }
 
-    </script>
+    searchButton.addEventListener('click', () => handleSearch()); 
+    cityInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    });
+
+    loadDataAndInitialize();
+
+</script>
 </body>
 </html>
