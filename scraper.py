@@ -28,7 +28,6 @@ def scrape_beyblade_events_dynamic():
     """Playwrightを使用して動的に読み込まれたイベントデータを抽出する"""
     events_data = []
     
-    # ★重要な修正点: tryブロックの位置を調整★
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
@@ -38,6 +37,26 @@ def scrape_beyblade_events_dynamic():
             
             # タイムアウトを60秒に延長し、待機条件を緩和
             page.goto(URL, wait_until="domcontentloaded", timeout=60000) 
+            
+            # --- ★ポップアップ処理を追加★ ---
+            # 1. Cookie/プライバシーポリシーなどの同意ボタンを探してクリック
+            try:
+                print("Attempting to dismiss first pop-up (e.g., consent button)...")
+                # '同意' または 'Accept' ボタンがあればクリック
+                page.locator('button:has-text("同意")').click(timeout=5000)
+                page.wait_for_timeout(500) 
+            except Exception:
+                pass # ボタンが見つからなくても続行
+
+            # 2. 2つ目のポップアップ（×ボタンや閉じるボタン）を探してクリック
+            try:
+                print("Attempting to dismiss second pop-up (e.g., close button)...")
+                # 閉じるボタン（xボタン、.modal-closeなど）があればクリック
+                page.locator('.close-btn, .modal-close, button:has-text("閉じる"), [aria-label="閉じる"]').click(timeout=5000)
+                page.wait_for_timeout(500)
+            except Exception:
+                pass # ボタンが見つからなくても続行
+            # --- ★ポップアップ処理 終了★ ---
             
             # スケジュール全体を囲むコンテナ要素が出現するのを明示的に待機
             print("Waiting for schedule container (div.schedule-container)...")
@@ -86,15 +105,14 @@ def scrape_beyblade_events_dynamic():
                     })
                     
                 except AttributeError as e:
-                    # 要素はあったが、データ取得に必要なタグが欠けていた場合
                     print(f"Skipping event due to missing tag in inner loop: {e}")
             
             # 💡 デバッグログ：構造化されたデータの件数を出力
             print(f"DEBUG: Successfully processed {len(events_data)} structured events.")
             return events_data
 
-        # Playwrightのタイムアウトやその他の予期せぬエラー
     except Exception as e:
+        # Playwrightのタイムアウトやその他の予期せぬエラー
         print(f"CRITICAL ERROR in Playwright execution: {e}")
         return []
 
