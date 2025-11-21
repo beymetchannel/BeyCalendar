@@ -28,6 +28,7 @@ def scrape_beyblade_events_dynamic():
     """Playwrightを使用して動的に読み込まれたイベントデータを抽出する"""
     events_data = []
     
+    # ★重要な修正点: tryブロックの位置を調整★
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
@@ -92,13 +93,9 @@ def scrape_beyblade_events_dynamic():
             print(f"DEBUG: Successfully processed {len(events_data)} structured events.")
             return events_data
 
-        except Exception as e:
-            # Playwrightのタイムアウトやその他の予期せぬエラー
-            print(f"CRITICAL ERROR in Playwright execution: {e}")
-            return []
-            
+        # Playwrightのタイムアウトやその他の予期せぬエラー
     except Exception as e:
-        print(f"CRITICAL ERROR in Playwright setup: {e}")
+        print(f"CRITICAL ERROR in Playwright execution: {e}")
         return []
 
 def save_data(data):
@@ -110,7 +107,6 @@ def save_data(data):
 
 
 if __name__ == "__main__":
-    # NameError対策：正しい関数名を呼び出す
     extracted_data = scrape_beyblade_events_dynamic() 
     if extracted_data is not None:
         save_data(extracted_data)
