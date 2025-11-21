@@ -3,13 +3,12 @@ import re
 import os
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-from datetime import datetime
 
 # ターゲットURL
 URL = "https://beyblade.takaratomy.co.jp/beyblade-x/event/schedule.html#schedule"
 
 def get_color_class(event_type):
-    """イベント種別に基づいてCSSクラスを決定（JSロジックと同期）"""
+    """イベント種別に基づいてカラーラベルを決定（JSロジックと同期）"""
     if "G3大会（レギュラー" in event_type or "レギュラークラス" in event_type:
         return 'G3(R)'
     elif "G3大会（オープン" in event_type or "オープンクラス" in event_type:
@@ -29,36 +28,37 @@ def scrape_beyblade_events_dynamic():
     """Playwrightを使用して動的に読み込まれたイベントデータを抽出する"""
     events_data = []
     
-    with sync_playwright() as p:
-        try:
+    try:
+        with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page()
             
             print(f"Navigating to {URL}...")
             
-            # 💡 タイムアウトを60秒に延長し、待機条件を緩和
+            # タイムアウトを60秒に延長し、待機条件を緩和
             page.goto(URL, wait_until="domcontentloaded", timeout=60000) 
             
-            # 💡 最も広い範囲のコンテンツブロックの出現を待機する
-            # スケジュール全体を囲むコンテナ要素を探す
-            print("Waiting for schedule container...")
+            # スケジュール全体を囲むコンテナ要素が出現するのを明示的に待機
+            print("Waiting for schedule container (div.schedule-container)...")
             page.wait_for_selector('div.schedule-container', timeout=30000) 
             
             # 完全にロードされたHTMLコンテンツを取得
             content = page.content()
             browser.close()
 
-            # Beautiful SoupでHTMLを解析
             soup = BeautifulSoup(content, 'html.parser')
             
             # イベント要素を全て取得
             event_elements = soup.find_all('div', class_='event-list-item')
+            
+            # 💡 デバッグログ：要素の発見数を出力
             print(f"DEBUG: Found {len(event_elements)} raw event elements.")
             
             if not event_elements:
-                print("Warning: No event elements found on the page. Returning empty list.")
+                print("Warning: No event elements found, possibly due to maintenance or no schedule.")
                 return []
             
+            # データ抽出ループ
             for item in event_elements:
                 try:
                     date_time_str = item.find('p', class_='date-time').text.strip()
@@ -85,15 +85,21 @@ def scrape_beyblade_events_dynamic():
                     })
                     
                 except AttributeError as e:
-                    print(f"Skipping event due to missing tag: {e}")
-
+                    # 要素はあったが、データ取得に必要なタグが欠けていた場合
+                    print(f"Skipping event due to missing tag in inner loop: {e}")
+            
+            # 💡 デバッグログ：構造化されたデータの件数を出力
             print(f"DEBUG: Successfully processed {len(events_data)} structured events.")
             return events_data
 
         except Exception as e:
-            # Playwrightのエラーやその他の予期せぬエラーをここで捕捉
-            print(f"Playwright execution failed: {e}")
+            # Playwrightのタイムアウトやその他の予期せぬエラー
+            print(f"CRITICAL ERROR in Playwright execution: {e}")
             return []
+            
+    except Exception as e:
+        print(f"CRITICAL ERROR in Playwright setup: {e}")
+        return []
 
 def save_data(data):
     """データをdata/events.jsonに保存する"""
@@ -104,7 +110,7 @@ def save_data(data):
 
 
 if __name__ == "__main__":
-    # 🚨 NameError修正: 正しい関数名を呼び出す
+    # NameError対策：正しい関数名を呼び出す
     extracted_data = scrape_beyblade_events_dynamic() 
-    if extracted_data:
+    if extracted_data is not None:
         save_data(extracted_data)
