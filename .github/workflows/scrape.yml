@@ -1,7 +1,9 @@
 name: 📅 Auto Scrape Beyblade Events
 
 on:
+  # 手動実行を可能にする
   workflow_dispatch:
+  # 毎日自動実行（UTC 5:00 = 日本時間 14:00）
   schedule:
     - cron: '0 5 * * *'
 
@@ -12,6 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # コミット権限を付与
           token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Set up Python
@@ -23,16 +26,18 @@ jobs:
         run: |
           pip install -r requirements.txt
           
-      # Playwright用のブラウザエンジンをインストール
+      # Playwrightが依存するブラウザエンジンをインストール
       - name: Install Playwright browsers
         run: playwright install chromium
           
       - name: Run Scraper
-        run: python scraper.py
+        # -u オプションでPythonの標準出力バッファリングを無効化し、ログを強制出力
+        run: python -u scraper.py
         
       - name: Commit and Push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: 'data/events.json'
           commit_message: "🤖 Feat: Update event data (Automatic Scrape)"
+          # GitHub Pagesが公開されているブランチ名に合わせてください (例: main, master)
           branch: main
