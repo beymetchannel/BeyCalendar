@@ -1,6 +1,5 @@
-name: Manual Scraper Test (Complete Code)
+name: Manual Scraper Test (FINAL FIX)
 
-# トリガー: 手動実行ボタンのみを有効化
 on:
   workflow_dispatch:
 
@@ -9,21 +8,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. リポジトリのファイルを読み込む
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Pythonのセットアップ
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 3. ライブラリの強制インストール（ModuleNotFoundErrorを解消）
-      - name: Force Install Selenium
-        # seleniumとドライバを管理するwebdriver-managerをインストール
+      # 3. インストールを単独ステップとして実行 (最も単純な形式)
+      - name: A_FORCE_INSTALL_SELENIUM
+        # インストールコマンドのみを記述し、実行を強制する
         run: pip install selenium webdriver-manager
       
-      # 4. ファイルを実行
-      - name: Run scraper.py
+      # 4. インストール済みかを確認 (デバッグ用)
+      - name: B_VERIFY_INSTALLATION
+        run: pip list | grep selenium
+
+      # 5. ファイルを実行
+      - name: C_RUN_SCRAPER
         run: python scraper.py
