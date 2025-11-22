@@ -379,19 +379,12 @@
     }
 
 function showEventDetails(event) {
-    // 改行(\n)をHTMLの<br>に変換する処理を削除し、そのまま表示させます。
 
-    // 💡 修正ポイント 1: "定員数："を削除
-    // replace()は安全なので、存在しない場合もエラーになりません
     let displayCapacity = event.capacity.replace('定員数 ', '');
-    
-    // 💡 修正ポイント 2: "参加資格："を削除
     let displayEligibility = event.eligibility.replace('参加資格：', '');
     
-    // JSONデータ内の改行(\n)はそのまま表示（HTMLではスペースとして扱われます）
-    
     modalContent.innerHTML = `
-        <p>${event.type}</p>
+        <p style="border: none;">${event.type}</p>
         <h3>${event.name}</h3>
         
         <p>
@@ -744,5 +737,6 @@ function showEventDetails(event) {
 </script>
 </body>
 </html>
+
 
 
