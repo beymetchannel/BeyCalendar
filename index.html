@@ -114,7 +114,13 @@
             margin-bottom: 3px; 
             display: block; 
             text-align: center; 
+            cursor: pointer; 
         }
+        .day-number:hover {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
         .calendar-grid .day-cell:nth-child(7n) .day-number { 
             color: #5555cc; 
         }
@@ -211,7 +217,33 @@
             padding-top: 5px;
             padding-bottom: 5px;
         }
+
+        /* --- 固定閉じるボタン --- */
+        .fixed-close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 2000; /* モーダルより手前 */
+            backdrop-filter: blur(2px);
+            line-height: 1;
+            transition: background-color 0.2s;
+        }
+        .fixed-close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
       
+      /* 詳細モーダル */
       #event-modal {
           display: flex; 
           position: fixed; 
@@ -226,13 +258,11 @@
           align-items: center;
       }
 
-
       #modal-content {
           background-color: #ffffff;
-            max-height: 90vh; 
+          max-height: 90vh; 
           margin-top: 5vh;
           margin-bottom: 5vh;
-          
           padding: 20px;
           border: 1px solid #cccccc;
           border-radius: 8px;
@@ -295,6 +325,125 @@
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
+
+        /* --- イベント一覧モーダルCSS --- */
+        .event-list-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 1100; /* 詳細モーダルより上に */
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .event-list-modal-content {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            width: 95%;
+            max-width: 600px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            position: relative;
+        }
+
+        .event-list-modal-content h3 {
+            font-size: 16px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #B3FF52;
+            text-align: center;
+            color: #505050;
+            margin: 0px;
+        }
+
+        /* バッジスタイル (詳細・一覧共通) */
+        .event-type-badge {
+            display: inline-block;
+            color: #505050;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            align-self: flex-start;
+        }
+        
+        /* バッジ色定義 */
+        .type-G1 { background-color: #845EC2; color: white; }
+        .type-G2 { background-color: #f06163; color: white; }
+        .type-G3O { background-color: #FF9772; }
+        .type-G3R { background-color: #FFC75F; }
+        .type-S1 { background-color: #6de7d7; }
+        .type-Amb { background-color: #6de7b8; }
+        .type-Other { background-color: #FAF871; }
+
+
+        /* カードレイアウト（2列構成） */
+        .event-card {
+            display: flex;
+            align-items: stretch; /* 高さを揃える */
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            gap: 10px;
+        }
+        .event-card:hover {
+            background-color: #eef;
+        }
+
+        /* 1列目: 時刻 (狭く、縦中央) */
+        .event-time-col {
+            flex: 0 0 40px;
+            font-size: 10px;
+            display: flex;
+            align-items: center; /* 垂直中央 */
+            justify-content: center;
+            border-right: 1px solid #e0e0e0;
+            padding-right: 5px;
+        }
+        
+        .event-time-text {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+        }
+
+        /* 2列目: 詳細 (広く、3段) */
+        .event-details-col {
+            flex: 1; 
+            display: flex;
+            flex-direction: column; /* 縦並び */
+            justify-content: center;
+            gap: 3px;
+            overflow: hidden; /* はみ出し防止 */
+        }
+
+        /* 2段目: イベント名 */
+        .event-name {
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.3;
+            color: #333;
+        }
+
+        /* 3段目: 住所 */
+        .event-address {
+            font-size: 10px;
+            color: #777;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -348,11 +497,15 @@
         "九州・沖縄地方": ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"]
     };
 
+    const JAPANESE_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
     let TARGET_START_YEAR = new Date().getFullYear(); 
     let TARGET_START_MONTH = new Date().getMonth() + 1; 
     let TARGET_MAX_DATE = new Date(); 
 
     let ALL_BEYBLADE_EVENTS = [];
+    let filteredEvents = []; 
+    let returnToDayDate = null; 
     
     const searchButton = document.getElementById('search-button');
     const prefectureContainer = document.getElementById('prefecture-checkbox-container');
@@ -378,42 +531,86 @@
         };
     }
 
-function showEventDetails(event) {
+    // 色判定クラス取得
+    function getColorClass(eventType) {
+        if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
+            return { class: 'label-yellow', label: '' };
+        } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
+            return { class: 'label-orange', label: '' };
+        } else if (eventType.includes("S1イベント")) {
+            return { class: 'label-lightblue', label: '' };
+        } else if (eventType.includes("アンバサダーイベント")) {
+            return { class: 'label-blue', label: '' };
+        } else if (eventType.includes("G2大会")) {
+            return { class: 'label-gray', label: '' };
+        } else if (eventType.includes("G1大会")) {
+            return { class: 'label-black', label: '' };
+        } else {
+            return { class: 'label-green', label: '' }; 
+        }
+    }
 
-    let displayCapacity = event.capacity.replace('定員数 ', '');
-    let displayEligibility = event.eligibility.replace('参加資格：', '');
-    
-    modalContent.innerHTML = `
-        <p style="border: none;">${event.type}</p>
-        <h3>${event.name}</h3>
+    // バッジ用クラス名取得 (共通)
+    function getBadgeClass(eventType) {
+        const { class: colorClass } = getColorClass(eventType);
+        if(colorClass === 'label-black') return 'type-G1';
+        if(colorClass === 'label-gray') return 'type-G2';
+        if(colorClass === 'label-orange') return 'type-G3O';
+        if(colorClass === 'label-yellow') return 'type-G3R';
+        if(colorClass === 'label-lightblue') return 'type-S1';
+        if(colorClass === 'label-blue') return 'type-Amb';
+        return 'type-Other';
+    }
+
+    function showEventDetails(event) {
+        let displayCapacity = event.capacity.replace('定員数 ', '');
+        let displayEligibility = event.eligibility.replace('参加資格：', '');
         
-        <p>
-            <strong>日時:</strong> ${event.time}（ ${event.date} ）
-        </p>
-        <p>
-            <strong>定員:</strong> ${displayCapacity} 
-        </p>
+        const badgeClass = getBadgeClass(event.type);
+
+        // 固定閉じるボタンを含める
+        modalContent.innerHTML = `
+            <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
+            
+            <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${event.type}</div>
+            <h3>${event.name}</h3>
+            
+            <p>
+                <strong>日時:</strong> ${event.time}（ ${event.date} ）
+            </p>
+            <p>
+                <strong>定員:</strong> ${displayCapacity} 
+            </p>
+            
+            <p><strong>会場:</strong> ${event.location}</p>
+            <p><strong>住所:</strong> ${event.address}</p>
+            
+            <p>
+                <strong>受付:</strong> ${displayEligibility}
+                <br>
+                ${event.entry}
+            </p>
+            
+            <p><strong>詳細:</strong> ${event.details}</p>
+        `;
         
-        <p><strong>会場:</strong> ${event.location}</p>
-        <p><strong>住所:</strong> ${event.address}</p>
-        
-        <p>
-            <strong>受付:</strong> ${displayEligibility}
-            <br>
-            ${event.entry}
-        </p>
-        
-        <p><strong>詳細:</strong> ${event.details}</p>
-    `;
-    
-    eventModal.style.display = 'flex';
-    document.body.style.overflow = 'hidden'; 
-}
-      
+        eventModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; 
+    }
       
     function closeEventModal() {
         eventModal.style.display = 'none';
         document.body.style.overflow = ''; 
+        
+        if (returnToDayDate) {
+            const eventsForDay = filteredEvents.filter(event => 
+                event.dateString === returnToDayDate
+            );
+            eventsForDay.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            
+            createDayEventModal(returnToDayDate, eventsForDay);
+            returnToDayDate = null; 
+        }
     }
     
     eventModal.addEventListener('click', (e) => {
@@ -421,6 +618,105 @@ function showEventDetails(event) {
             closeEventModal();
         }
     });
+
+    // --- イベント一覧モーダル生成関数 ---
+    function createDayEventModal(dateString, dayEvents) {
+        document.querySelector('.event-list-modal-overlay')?.remove();
+
+        const date = new Date(dateString);
+        const dateFormatted = `${date.getMonth() + 1}月${date.getDate()}日 (${JAPANESE_WEEKDAYS[date.getDay()]})`;
+
+        const overlay = document.createElement('div');
+        overlay.classList.add('event-list-modal-overlay');
+
+        // ★ 固定閉じるボタンをオーバーレイに追加
+        const closeButton = document.createElement('button');
+        closeButton.classList.add('fixed-close-btn');
+        closeButton.innerHTML = '×';
+        closeButton.onclick = () => overlay.remove();
+        overlay.appendChild(closeButton);
+
+        const content = document.createElement('div');
+        content.classList.add('event-list-modal-content');
+
+        const header = document.createElement('h3');
+        header.textContent = dateFormatted + (dayEvents.length > 0 ? ` ${dayEvents.length}件のイベント` : ' のイベントはありません');
+        content.appendChild(header);
+
+        const listContainer = document.createElement('div');
+
+        if (dayEvents.length > 0) {
+            dayEvents.forEach(event => {
+                const card = document.createElement('div');
+                card.classList.add('event-card');
+                
+                card.onclick = () => {
+                    returnToDayDate = dateString; 
+                    showEventDetails(event);
+                    overlay.remove(); 
+                };
+
+                // === 1列目: 時刻 ===
+                const timeCol = document.createElement('div');
+                timeCol.classList.add('event-time-col');
+                
+                let timeText = event.time || '未定';
+                const timeMatch = timeText.match(/\d{1,2}[:：]\d{2}/);
+                if (timeMatch) {
+                    timeText = timeMatch[0].replace('：', ':'); 
+                } else if (timeText.includes('：')) {
+                    timeText = timeText.split('：')[0];
+                }
+                
+                const timeTextNode = document.createElement('span');
+                timeTextNode.classList.add('event-time-text');
+                timeTextNode.textContent = timeText;
+                timeCol.appendChild(timeTextNode);
+                card.appendChild(timeCol);
+
+                // === 2列目: 詳細情報 ===
+                const detailsCol = document.createElement('div');
+                detailsCol.classList.add('event-details-col');
+
+                // 1段目: イベントタイプバッジ
+                const typeBadge = document.createElement('div');
+                typeBadge.textContent = event.type;
+                typeBadge.classList.add('event-type-badge');
+                
+                const badgeClass = getBadgeClass(event.type);
+                typeBadge.classList.add(badgeClass);
+                
+                detailsCol.appendChild(typeBadge);
+
+                // 2段目: イベント名
+                const name = document.createElement('div');
+                name.textContent = event.name;
+                name.classList.add('event-name');
+                detailsCol.appendChild(name);
+
+                // 3段目: 住所
+                const address = document.createElement('div');
+                address.textContent = event.address;
+                address.classList.add('event-address');
+                detailsCol.appendChild(address);
+
+                card.appendChild(detailsCol);
+                listContainer.appendChild(card);
+            });
+        }
+
+        content.appendChild(listContainer);
+        overlay.appendChild(content);
+
+        overlay.addEventListener('click', (e) => {
+            // 固定ボタン自体をクリックした場合は閉じない(ボタン自身のonclickで閉じるため)
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+
+        document.body.appendChild(overlay);
+    }
 
     async function loadDataAndInitialize() {
         try {
@@ -433,11 +729,19 @@ function showEventDetails(event) {
             const fetchedJson = await response.json();
             
             ALL_BEYBLADE_EVENTS = fetchedJson
-                .map(event => ({
-                    ...event,
-                    parsedDate: parseDate(event.date)
-                }))
-                .filter(event => event.parsedDate);
+                .map(event => {
+                    const parsedDate = parseDate(event.date);
+                    if (!parsedDate) return null;
+                    
+                    const dateString = `${parsedDate.year}-${String(parsedDate.month).padStart(2, '0')}-${String(parsedDate.day).padStart(2, '0')}`;
+                    
+                    return {
+                        ...event,
+                        parsedDate: parsedDate,
+                        dateString: dateString 
+                    };
+                })
+                .filter(event => event); 
 
             if (ALL_BEYBLADE_EVENTS.length > 0) {
                 const dates = ALL_BEYBLADE_EVENTS.map(event => new Date(event.parsedDate.year, event.parsedDate.month - 1, event.parsedDate.day));
@@ -449,6 +753,8 @@ function showEventDetails(event) {
                 TARGET_START_MONTH = minDate.getMonth() + 1;
             }
             
+            filteredEvents = ALL_BEYBLADE_EVENTS;
+
             populatePrefectureSelect();
             
             handleSearch(false); 
@@ -556,7 +862,6 @@ function showEventDetails(event) {
         }
     }
 
-
     function toggleRegionSelection(region, select) {
         prefectureContainer.querySelectorAll(`[data-region="${region}"]`).forEach(label => {
             const checkbox = label.querySelector('input[type="checkbox"]');
@@ -565,24 +870,6 @@ function showEventDetails(event) {
                 label.classList.toggle('checked', select);
             }
         });
-    }
-
-    function getColorClass(eventType) {
-        if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
-            return { class: 'label-yellow', label: '' };
-        } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
-            return { class: 'label-orange', label: '' };
-        } else if (eventType.includes("S1イベント")) {
-            return { class: 'label-lightblue', label: '' };
-        } else if (eventType.includes("アンバサダーイベント")) {
-            return { class: 'label-blue', label: '' };
-        } else if (eventType.includes("G2大会")) {
-            return { class: 'label-gray', label: '' };
-        } else if (eventType.includes("G1大会")) {
-            return { class: 'label-black', label: '' };
-        } else {
-            return { class: 'label-green', label: '' }; 
-        }
     }
 
     function generateCalendar(events, startYear, startMonth, maxDate) {
@@ -632,6 +919,9 @@ function showEventDetails(event) {
                 
                 dayNumber.textContent = `${currentMonth}/${day}`;
                 
+                const dateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                dayNumber.dataset.date = dateString;
+
                 dayCell.appendChild(dayNumber);
 
                 const dailyEvents = events.filter(event => {
@@ -651,6 +941,7 @@ function showEventDetails(event) {
                     
                     eventLabel.onclick = (e) => {
                         e.stopPropagation(); 
+                        returnToDayDate = null; // ★ カレンダーから直接クリックした場合は戻り先をクリア
                         showEventDetails(event);
                     };
 
@@ -683,12 +974,12 @@ function showEventDetails(event) {
         
         const citySearchText = cityInput.value.trim().toLowerCase();
         
-        let filteredEvents = ALL_BEYBLADE_EVENTS;
+        let localFilteredEvents = ALL_BEYBLADE_EVENTS;
         
         let filterDescription = [];
 
         if (selectedPrefectures.length > 0) {
-            filteredEvents = filteredEvents.filter(event => {
+            localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
                     event.address, 
                     event.location,
@@ -702,7 +993,7 @@ function showEventDetails(event) {
         }
 
         if (citySearchText !== "") {
-            filteredEvents = filteredEvents.filter(event => {
+            localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
                     event.address, 
                     event.location,
@@ -715,6 +1006,8 @@ function showEventDetails(event) {
             filterDescription.push(`キーワード: "${citySearchText}"`);
         }
         
+        filteredEvents = localFilteredEvents;
+
         if (updateStatus) {
             const descriptionText = filterDescription.length > 0 
                 ? `${filterDescription.join(' / ')} に一致する ${filteredEvents.length} 件のイベントを表示中`
@@ -723,6 +1016,35 @@ function showEventDetails(event) {
         }
         
         generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+        
+        addDayNumberClickHandlers();
+    }
+
+    function addDayNumberClickHandlers() {
+        const allDayElements = document.querySelectorAll('.day-number');
+
+        allDayElements.forEach(dayEl => {
+            dayEl.removeEventListener('click', dayClickHandler);
+            dayEl.addEventListener('click', dayClickHandler);
+        });
+    }
+
+    function dayClickHandler(e) {
+        const dayEl = e.currentTarget;
+        const dateString = dayEl.dataset.date; 
+
+        if (!dateString) {
+            console.error("day-number要素にdata-date属性がありません。");
+            return;
+        }
+
+        const eventsForDay = filteredEvents.filter(event => 
+            event.dateString === dateString
+        );
+        
+        eventsForDay.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+        createDayEventModal(dateString, eventsForDay);
     }
 
     searchButton.addEventListener('click', () => handleSearch()); 
