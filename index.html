@@ -55,6 +55,7 @@
             align-self: flex-start; 
             margin-bottom: 5px;
         }
+        
         .keyword-search-group input[type="text"] {
             padding: 8px;
             border: 1px solid #cccccc;
@@ -99,7 +100,7 @@
         .day-header { 
             background-color: #f1f1f1; 
             font-size: 10px; 
-            padding: 8px 5px; 
+            padding: 5px 5px; 
             text-align: center; 
             border-right: 1px solid #cccccc; 
             border-bottom: 1px solid #cccccc; 
@@ -118,6 +119,10 @@
         }
         .day-number:hover {
             font-weight: bold;
+            text-decoration: underline;
+        }
+        
+        .day-number.has-events {
             text-decoration: underline;
         }
 
@@ -218,7 +223,6 @@
             padding-bottom: 5px;
         }
 
-        /* --- 固定閉じるボタン --- */
         .fixed-close-btn {
             position: fixed;
             top: 20px;
@@ -234,7 +238,7 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            z-index: 2000; /* モーダルより手前 */
+            z-index: 2000; 
             backdrop-filter: blur(2px);
             line-height: 1;
             transition: background-color 0.2s;
@@ -243,7 +247,6 @@
             background-color: rgba(0, 0, 0, 0.8);
         }
       
-      /* 詳細モーダル */
       #event-modal {
           display: flex; 
           position: fixed; 
@@ -363,7 +366,6 @@
             margin: 0px;
         }
 
-        /* バッジスタイル (詳細・一覧共通) */
         .event-type-badge {
             display: inline-block;
             color: #505050;
@@ -373,8 +375,7 @@
             white-space: nowrap;
             align-self: flex-start;
         }
-        
-        /* バッジ色定義 */
+
         .type-G1 { background-color: #845EC2; color: white; }
         .type-G2 { background-color: #f06163; color: white; }
         .type-G3O { background-color: #FF9772; }
@@ -384,10 +385,9 @@
         .type-Other { background-color: #FAF871; }
 
 
-        /* カードレイアウト（2列構成） */
         .event-card {
             display: flex;
-            align-items: stretch; /* 高さを揃える */
+            align-items: stretch; 
             padding: 10px;
             border-radius: 6px;
             background-color: #f9f9f9;
@@ -400,12 +400,11 @@
             background-color: #eef;
         }
 
-        /* 1列目: 時刻 (狭く、縦中央) */
         .event-time-col {
             flex: 0 0 40px;
             font-size: 10px;
             display: flex;
-            align-items: center; /* 垂直中央 */
+            align-items: center; 
             justify-content: center;
             border-right: 1px solid #e0e0e0;
             padding-right: 5px;
@@ -418,17 +417,15 @@
             text-align: center;
         }
 
-        /* 2列目: 詳細 (広く、3段) */
         .event-details-col {
             flex: 1; 
             display: flex;
-            flex-direction: column; /* 縦並び */
+            flex-direction: column; 
             justify-content: center;
             gap: 3px;
-            overflow: hidden; /* はみ出し防止 */
+            overflow: hidden; 
         }
 
-        /* 2段目: イベント名 */
         .event-name {
             font-weight: bold;
             font-size: 15px;
@@ -436,7 +433,6 @@
             color: #333;
         }
 
-        /* 3段目: 住所 */
         .event-address {
             font-size: 12px;
             color: #777;
@@ -532,7 +528,19 @@
         };
     }
 
-    // 色判定クラス取得
+    function getTimeValue(timeStr) {
+        if (!timeStr) return 99999; 
+        
+        const match = timeStr.match(/(\d{1,2})[:：](\d{2})/);
+        
+        if (match) {
+            const hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
+            return hours * 60 + minutes;
+        }
+        return 99999; 
+    }
+
     function getColorClass(eventType) {
         if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
             return { class: 'label-yellow', label: '' };
@@ -551,7 +559,6 @@
         }
     }
 
-    // バッジ用クラス名取得 (共通)
     function getBadgeClass(eventType) {
         const { class: colorClass } = getColorClass(eventType);
         if(colorClass === 'label-black') return 'type-G1';
@@ -569,7 +576,6 @@
         
         const badgeClass = getBadgeClass(event.type);
 
-        // 固定閉じるボタンを含める
         modalContent.innerHTML = `
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
             
@@ -601,16 +607,18 @@
       
     function closeEventModal() {
         eventModal.style.display = 'none';
-        document.body.style.overflow = ''; 
         
         if (returnToDayDate) {
             const eventsForDay = filteredEvents.filter(event => 
                 event.dateString === returnToDayDate
             );
-            eventsForDay.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            
+            eventsForDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
             
             createDayEventModal(returnToDayDate, eventsForDay);
             returnToDayDate = null; 
+        } else {
+            document.body.style.overflow = ''; 
         }
     }
     
@@ -620,7 +628,6 @@
         }
     });
 
-    // --- イベント一覧モーダル生成関数 ---
     function createDayEventModal(dateString, dayEvents) {
         document.querySelector('.event-list-modal-overlay')?.remove();
 
@@ -630,11 +637,15 @@
         const overlay = document.createElement('div');
         overlay.classList.add('event-list-modal-overlay');
 
-        // ★ 固定閉じるボタンをオーバーレイに追加
         const closeButton = document.createElement('button');
         closeButton.classList.add('fixed-close-btn');
         closeButton.innerHTML = '×';
-        closeButton.onclick = () => overlay.remove();
+        
+        closeButton.onclick = () => {
+            overlay.remove();
+            document.body.style.overflow = ''; 
+        };
+        
         overlay.appendChild(closeButton);
 
         const content = document.createElement('div');
@@ -655,10 +666,8 @@
                     returnToDayDate = dateString; 
                     showEventDetails(event);
                     overlay.remove(); 
-                    document.body.style.overflow = ''
                 };
 
-                // === 1列目: 時刻 ===
                 const timeCol = document.createElement('div');
                 timeCol.classList.add('event-time-col');
                 
@@ -676,11 +685,9 @@
                 timeCol.appendChild(timeTextNode);
                 card.appendChild(timeCol);
 
-                // === 2列目: 詳細情報 ===
                 const detailsCol = document.createElement('div');
                 detailsCol.classList.add('event-details-col');
 
-                // 1段目: イベントタイプバッジ
                 const typeBadge = document.createElement('div');
                 typeBadge.textContent = event.type;
                 typeBadge.classList.add('event-type-badge');
@@ -690,13 +697,11 @@
                 
                 detailsCol.appendChild(typeBadge);
 
-                // 2段目: イベント名
                 const name = document.createElement('div');
                 name.textContent = event.name;
                 name.classList.add('event-name');
                 detailsCol.appendChild(name);
 
-                // 3段目: 住所
                 const address = document.createElement('div');
                 address.textContent = event.address;
                 address.classList.add('event-address');
@@ -711,10 +716,9 @@
         overlay.appendChild(content);
 
         overlay.addEventListener('click', (e) => {
-            // 固定ボタン自体をクリックした場合は閉じない(ボタン自身のonclickで閉じるため)
             if (e.target === overlay) {
                 overlay.remove();
-                document.body.style.overflow = ''
+                document.body.style.overflow = ''; 
             }
         });
 
@@ -926,12 +930,18 @@
                 const dateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 dayNumber.dataset.date = dateString;
 
-                dayCell.appendChild(dayNumber);
-
                 const dailyEvents = events.filter(event => {
                     const pd = event.parsedDate;
                     return pd && pd.year === currentYear && pd.month === currentMonth && pd.day === day;
                 });
+                
+                if (dailyEvents.length > 0) {
+                    dayNumber.classList.add('has-events');
+                }
+
+                dayCell.appendChild(dayNumber);
+                
+                dailyEvents.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
 
                 dailyEvents.forEach(event => {
                     const { class: colorClass, label } = getColorClass(event.type);
@@ -945,7 +955,7 @@
                     
                     eventLabel.onclick = (e) => {
                         e.stopPropagation(); 
-                        returnToDayDate = null; // ★ カレンダーから直接クリックした場合は戻り先をクリア
+                        returnToDayDate = null; 
                         showEventDetails(event);
                     };
 
@@ -967,6 +977,19 @@
     }
 
     function handleSearch(updateStatus = true) {
+        if (cityInput) {
+            cityInput.blur(); 
+        }
+
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            const originalContent = viewport.getAttribute('content');
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+            setTimeout(() => {
+                viewport.setAttribute('content', originalContent || 'width=device-width, initial-scale=1.0');
+            }, 300);
+        }
+        
         if (ALL_BEYBLADE_EVENTS.length === 0) {
             generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
             return;
@@ -1046,7 +1069,7 @@
             event.dateString === dateString
         );
         
-        eventsForDay.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        eventsForDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
 
         createDayEventModal(dateString, eventsForDay);
     }
