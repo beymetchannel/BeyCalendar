@@ -163,7 +163,6 @@
             text-overflow: ellipsis; 
             cursor: pointer;
         }
-        /* イベントバッジ用クラス */
         .label-yellow { background-color: #FFC75F; color: #505050; } 
         .label-orange { background-color: #FF9772; color: #505050; } 
         .label-lightblue { background-color: #6de7d7; color: #505050; } 
@@ -301,7 +300,8 @@
         }
         
         #modal-content p {
-            margin: 5px 0;
+            font-size: 14px;
+            margin: 8px 0;
             line-height: 1.5;
             border-bottom: 0.5px solid #cccccc;
             color: #505050;
@@ -309,9 +309,14 @@
         }
         
         #modal-content strong {
+            font-size: 14px;
             display: inline-block;
-            width: 50px;
             color: #505050;
+        }
+        
+        #modal-content a {
+            color: #505050; 
+            text-decoration: underline; 
         }
         
         #label-legend-container {
@@ -357,27 +362,22 @@
             background-color: #845EC2;
             color: white;
         }
-
         .legend-item.active.style-G2 {
             background-color: #f06163;
             color: white;
         }
-
         .legend-item.active.style-G3O {
             background-color: #FF9772;
             color: #303030;
         }
-
         .legend-item.active.style-G3R {
             background-color: #FFC75F;
             color: #303030;
         }
-
         .legend-item.active.style-S1AMB {
             background-color: #6de7d7;
             color: #303030;
         }
-
         .legend-item.active.style-Meetup {
             background-color: #acff5f;
             color: #303030;
@@ -539,7 +539,13 @@
             </div>
     </div>
 
-<script>
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabaseUrl = 'https://yyrsscvofuoufkujetgf.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cnNzY3ZvZnVvdWZrdWpldGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzIxMjksImV4cCI6MjA3OTYwODEyOX0.mNPIAGFKhJ65dsSllBprGYk3yZfnJXfYmDcdljW8xA4';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const JAPAN_PREFECTURES_BY_REGION = {
         "北海道": ["北海道"],
         "東北地方": ["青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"],
@@ -582,20 +588,62 @@
     const modalContent = document.getElementById('modal-content');
     const legendContainer = document.getElementById('label-legend-container');
 
-    
-    function parseDate(dateStr) {
-        const match = dateStr.match(/(\d{4})年[\s\n]*(\d{1,2})月[\s\n]*(\d{1,2})日/); 
-        
-        if (!match) {
-            console.warn(`[ParseError] 日付形式が不正です: ${dateStr}`);
-            return null;
+    function formatTime(timeStr) {
+        if (!timeStr) return '';
+        const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
+        if (match) {
+            return `${match[1].padStart(2, '0')}：${match[2]}`;
         }
+        return timeStr; 
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
         
-        return {
-            year: parseInt(match[1], 10),
-            month: parseInt(match[2], 10), 
-            day: parseInt(match[3], 10)
-        };
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    function linkifyText(text) {
+        if (!text) return '';
+        // http(s)://... または www.... で始まるURLを検出
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+        
+        return text.replace(urlRegex, (url) => {
+            let href = url;
+            // www. で始まっていて http(s):// がなければ追加
+            if (url.startsWith('www.') && !url.match(/^https?:\/\//i)) {
+                href = 'http://' + url;
+            }
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
+    }
+
+
+    function parseDate(dateStr) {
+        if (!dateStr) return null;
+
+        const jpMatch = dateStr.match(/(\d{4})年[\s\n]*(\d{1,2})月[\s\n]*(\d{1,2})日/);
+        if (jpMatch) {
+            return {
+                year: parseInt(jpMatch[1], 10),
+                month: parseInt(jpMatch[2], 10), 
+                day: parseInt(jpMatch[3], 10)
+            };
+        }
+
+        const isoMatch = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (isoMatch) {
+            return {
+                year: parseInt(isoMatch[1], 10),
+                month: parseInt(isoMatch[2], 10),
+                day: parseInt(isoMatch[3], 10)
+            };
+        }
+
+        console.warn(`[ParseError] 日付形式が不正です: ${dateStr}`);
+        return null;
     }
 
     function getTimeValue(timeStr) {
@@ -612,6 +660,8 @@
     }
 
     function getColorClass(eventType) {
+        if (!eventType) return { class: 'label-green', label: '' }; 
+        
         if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
             return { class: 'label-yellow', label: '' };
         } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
@@ -644,6 +694,37 @@
     function showEventDetails(event) {
         
         const badgeClass = getBadgeClass(event.type);
+        const timeVal = event.time ? `${event.time}（${event.date}）` : `（${event.date}）`;
+        
+        const eligibilityRaw = event.eligibility ? event.eligibility.replace('参加資格：', '').trim() : '';
+        const eligibilityContent = linkifyText(eligibilityRaw);
+        const entryContent = linkifyText(event.entry || '');
+        const detailsContent = linkifyText(event.details || '');
+
+        const capacityPresent = !!event.capacity;
+        const feePresent = !!event.fee;
+        const capacityFeeHtml = (capacityPresent || feePresent) ? `
+            <p>
+                <strong>定員:</strong> ${event.capacity || '-'}（${event.fee || '参加費：-'}）
+            </p>
+        ` : '';
+
+        const locationHtml = event.location ? `<p><strong>会場:</strong> ${event.location}</p>` : '';
+
+        const address = event.address || '';
+        const mapLink = address ? `href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}"` : '';
+        const addressText = address ? `<a ${mapLink} target="_blank" rel="noopener noreferrer">${address}</a>` : '';
+        
+        const addressHtml = `<p><strong>住所:</strong> ${addressText}</p>`;
+        
+        const eligibilityEntryPresent = eligibilityRaw || event.entry;
+        const eligibilityEntryHtml = eligibilityEntryPresent ? `
+            <p>
+                <strong>受付:</strong> ${eligibilityContent || '-'} (${entryContent || '-'})
+            </p>
+        ` : '';
+        
+        const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> ${detailsContent || ''}</p>`;
 
         modalContent.innerHTML = `
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
@@ -652,22 +733,14 @@
             <h3>${event.name}</h3>
             
             <p>
-                <strong>日時:</strong> ${event.time}（ ${event.date} ）
-            </p>
-            <p>
-                <strong>定員:</strong> ${event.capacity}（ ${event.fee} ）
+                <strong>日時:</strong> ${timeVal}
             </p>
             
-            <p><strong>会場:</strong> ${event.location}</p>
-            <p><strong>住所:</strong> ${event.address}</p>
-            
-            <p>
-                <strong>受付:</strong> ${event.eligibility}
-                <br>
-                ${event.entry}
-            </p>
-            
-            <p><strong>詳細:</strong> ${event.details}</p>
+            ${capacityFeeHtml}
+            ${locationHtml}
+            ${addressHtml}
+            ${eligibilityEntryHtml}
+            ${detailsHtml}
         `;
         
         eventModal.style.display = 'flex';
@@ -690,12 +763,16 @@
             document.body.style.overflow = ''; 
         }
     }
+    window.closeEventModal = closeEventModal;
     
     eventModal.addEventListener('click', (e) => {
         if (e.target === eventModal) {
             closeEventModal();
         }
     });
+
+
+    
 
     function createDayEventModal(dateString, dayEvents) {
         document.querySelector('.event-list-modal-overlay')?.remove();
@@ -772,7 +849,7 @@
                 detailsCol.appendChild(name);
 
                 const address = document.createElement('div');
-                address.textContent = event.address;
+                address.textContent = event.address || '';
                 address.classList.add('event-address');
                 detailsCol.appendChild(address);
 
@@ -795,17 +872,56 @@
         document.body.style.overflow = 'hidden';
     }
 
-    async function loadDataAndInitialize() {
+    async function fetchSupabaseEvents() {
         try {
-            const response = await fetch('./events.json'); 
-            
-            if (!response.ok) {
-                throw new Error('スケジュールデータ (events.json) の読み込みに失敗しました。');
+            const { data, error } = await supabase
+                .from('EventDB')
+                .select('*');
+
+            if (error) {
+                console.error('Supabase fetch error:', error);
+                return [];
             }
             
-            const fetchedJson = await response.json();
+            return data.map(evt => ({
+                name: evt.name,
+                date: formatDate(evt.date), 
+                time: formatTime(evt.time),
+                location: evt.location,
+                address: evt.address,
+                type: evt.type || '交流会', 
+                fee: evt.fee,
+                capacity: evt.capacity,
+                eligibility: evt.eligibility,
+                entry: evt.entry,
+                details: evt.details
+            }));
+        } catch (err) {
+            console.error('Supabase connection failed:', err);
+            return [];
+        }
+    }
+
+    async function loadDataAndInitialize() {
+        try {
+            const jsonPromise = fetch('./events.json')
+                .then(res => {
+                    if(!res.ok) throw new Error('JSON fetch failed');
+                    return res.json();
+                })
+                .catch(err => {
+                    console.warn('events.json読み込みエラー:', err);
+                    return [];
+                });
+
+            const [jsonEvents, supabaseEvents] = await Promise.all([
+                jsonPromise,
+                fetchSupabaseEvents()
+            ]);
             
-            ALL_BEYBLADE_EVENTS = fetchedJson
+            const combinedEvents = [...jsonEvents, ...supabaseEvents];
+            
+            ALL_BEYBLADE_EVENTS = combinedEvents
                 .map(event => {
                     const parsedDate = parseDate(event.date);
                     if (!parsedDate) return null;
@@ -836,29 +952,32 @@
             populateLegendButtons(); 
             
             handleSearch(false); 
-            filterStatus.textContent = `${ALL_BEYBLADE_EVENTS.length} 件のイベントを読み込みました。`;
+            
+            const sourceInfo = [];
+            if(jsonEvents.length > 0) sourceInfo.push(`JSON: ${jsonEvents.length}件`);
+            if(supabaseEvents.length > 0) sourceInfo.push(`DB: ${supabaseEvents.length}件`);
+            
+            filterStatus.textContent = `${sourceInfo.join(', ')} (計 ${ALL_BEYBLADE_EVENTS.length}件) を読み込みました。`;
 
         } catch (error) {
-            filterStatus.textContent = `エラー: ${error.message}`;
+            console.error(error);
+            filterStatus.textContent = `データ読み込みエラー: ${error.message}`;
             generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
         }
     }
 
-    // 凡例ボタンを生成し、イベントリスナーを設定する関数
     function populateLegendButtons() {
         legendContainer.innerHTML = '';
         
         EVENT_TYPES_LEGEND.forEach(item => {
             const legendItem = document.createElement('div');
             legendItem.classList.add('legend-item');
-            legendItem.classList.add(item.styleClass); // CSSでの色分け用クラス付与
+            legendItem.classList.add(item.styleClass); 
             
-            // 初期状態で全てアクティブにする
             if (activeEventTypes.includes(item.key)) {
                 legendItem.classList.add('active');
             }
 
-            // アイコンspanを削除し、テキストのみ追加
             legendItem.appendChild(document.createTextNode(item.label));
             
             legendItem.addEventListener('click', () => {
@@ -1054,7 +1173,7 @@
                     const eventLabel = document.createElement('span');
                     eventLabel.classList.add('event-label', colorClass);
                     
-                    const timeParts = event.time.split('：');
+                    const timeParts = (event.time || '').split('：');
                     const displayTime = timeParts.length === 2 ? `${timeParts[0]}:${timeParts[1]}` : event.time;
 
                     eventLabel.textContent = `${displayTime} ${label}`;
@@ -1123,10 +1242,10 @@
         if (selectedPrefectures.length > 0) {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
-                    event.address, 
-                    event.location,
-                    event.name,
-                    event.details
+                    event.address || '', 
+                    event.location || '',
+                    event.name || '',
+                    event.details || ''
                 ].join(' ').toLowerCase();
                 
                 return selectedPrefectures.some(pref => searchTarget.includes(pref));
@@ -1137,10 +1256,10 @@
         if (citySearchText !== "") {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
-                    event.address, 
-                    event.location,
-                    event.name,
-                    event.details
+                    event.address || '', 
+                    event.location || '',
+                    event.name || '',
+                    event.details || ''
                 ].join(' ').toLowerCase();
 
                 return searchTarget.includes(citySearchText);
@@ -1157,7 +1276,7 @@
             const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
             
             localFilteredEvents = localFilteredEvents.filter(event => {
-                const eventType = event.type;
+                const eventType = event.type || ''; 
                 
                 const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
                 
@@ -1228,5 +1347,3 @@
 </script>
 </body>
 </html>
-
-
