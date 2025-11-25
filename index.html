@@ -957,7 +957,7 @@
             if(jsonEvents.length > 0) sourceInfo.push(`JSON: ${jsonEvents.length}件`);
             if(supabaseEvents.length > 0) sourceInfo.push(`DB: ${supabaseEvents.length}件`);
             
-            filterStatus.textContent = `${sourceInfo.join(', ')} (計 ${ALL_BEYBLADE_EVENTS.length}件) を読み込みました。`;
+            filterStatus.textContent = ` ${ALL_BEYBLADE_EVENTS.length}件のイベントを表示中`;
 
         } catch (error) {
             console.error(error);
