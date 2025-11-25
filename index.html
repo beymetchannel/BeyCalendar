@@ -348,43 +348,40 @@
             color: #808080;
         }
 
-        /* 選択時の各イベントカラー定義 */
         .legend-item.active {
             border-color: transparent;
             box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
-        /* G1: 紫/黒系 -> 白文字 */
         .legend-item.active.style-G1 {
             background-color: #845EC2;
             color: white;
         }
-        /* G2: 赤/グレー系 -> 白文字 */
+
         .legend-item.active.style-G2 {
             background-color: #f06163;
             color: white;
         }
-        /* G3O: オレンジ -> 濃いグレー文字 */
+
         .legend-item.active.style-G3O {
             background-color: #FF9772;
             color: #303030;
         }
-        /* G3R: 黄色 -> 濃いグレー文字 */
+
         .legend-item.active.style-G3R {
             background-color: #FFC75F;
             color: #303030;
         }
-        /* S1/Amb: 単色に統一(#6de7d7) */
+
         .legend-item.active.style-S1AMB {
             background-color: #6de7d7;
             color: #303030;
         }
-        /* 交流会: 薄緑(#A0FA8D) -> 濃いグレー文字 */
+
         .legend-item.active.style-Meetup {
             background-color: #acff5f;
             color: #303030;
         }
-        /* その他: 黄緑 -> 濃いグレー文字 */
         .legend-item.active.style-Other {
             background-color: #FAF871;
             color: #303030;
@@ -1123,7 +1120,6 @@
         
         let filterDescription = [];
 
-        // 1. 都道府県フィルター
         if (selectedPrefectures.length > 0) {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
@@ -1138,7 +1134,6 @@
             filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.toUpperCase()).join('、')}`);
         }
 
-        // 2. キーワードフィルター
         if (citySearchText !== "") {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
@@ -1153,13 +1148,11 @@
             filterDescription.push(`キーワード: "${citySearchText}"`);
         }
         
-        // 3. イベントタイプフィルター
         if (activeEventTypes.length > 0) {
             const allowedKeywords = activeEventTypes.flatMap(key => 
                 EVENT_TYPES_LEGEND.find(item => item.key === key).searchKeywords
             );
             
-            // 'その他'が選択されている場合は、他のタイプに該当しないイベントを含める
             const includeOther = activeEventTypes.includes('Other');
             const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
             
@@ -1169,7 +1162,6 @@
                 const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
                 
                 if (includeOther) {
-                    // 'その他'に該当するイベントかどうかをチェック
                     const isOther = !otherTypesKeywords.some(keyword => eventType.includes(keyword));
                     return isMatch || isOther;
                 }
@@ -1177,7 +1169,6 @@
                 return isMatch;
             });
             
-            // 全て選択されている場合は「全タイプ」などの表記にするか、省略しても良いが、ここではデバッグ的にも表示
             if (activeEventTypes.length < EVENT_TYPES_LEGEND.length) {
                 filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key).label).join('、')}`);
             }
@@ -1237,4 +1228,5 @@
 </script>
 </body>
 </html>
+
 
