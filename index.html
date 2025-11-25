@@ -35,10 +35,17 @@
             background-color: #ffffff; 
             display: flex;
             flex-wrap: wrap; 
-            gap: 10px;
+            gap: 5px;
             align-items: center;
         }
         .search-container label { font-weight: bold; margin-right: 5px; }
+
+        .search-container p{ 
+            color: #505050;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 0px;
+        }
 
         .keyword-search-group {
             display: flex;
@@ -63,6 +70,14 @@
             flex-grow: 1; 
             margin: 0;
         }
+
+        .type-search-label {
+            color: #505050; 
+            font-size: 14px;
+            align-self: flex-start; 
+            margin-bottom: 0px;
+        }
+
         .search-button-icon {
             padding: 8px 12px;
             background-color: #dbdbdb; 
@@ -148,6 +163,7 @@
             text-overflow: ellipsis; 
             cursor: pointer;
         }
+        /* イベントバッジ用クラス */
         .label-yellow { background-color: #FFC75F; color: #505050; } 
         .label-orange { background-color: #FF9772; color: #505050; } 
         .label-lightblue { background-color: #6de7d7; color: #505050; } 
@@ -155,6 +171,7 @@
         .label-gray { background-color: #f06163; color: white; } 
         .label-black { background-color: #845EC2; color: white; } 
         .label-green { background-color: #FAF871; color: #505050; }
+        .label-meetup { background-color: #A0FA8D; color: #505050; } 
         
         .pref-label {
             display: inline-block;
@@ -299,29 +316,78 @@
         
         #label-legend-container {
             width: 100%;
-            margin: 0px; 
-            display: flex;
-            flex-wrap: wrap; 
-            justify-content: center;
+            max-width: 1000px;
+            margin: 0px auto; 
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 2px;
             align-items: center;
-            font-size: 9px;
             color: #505050;
-            gap: 5px;
+            padding: 0px; 
         }
 
         .legend-item {
             display: flex;
             align-items: center;
+            justify-content: center;
             white-space: nowrap; 
+            cursor: pointer;
+            border: 1px solid #dcdcdc; 
+            padding: 6px 0; 
+            border-radius: 5px;
+            font-size: 10px;
+            background-color: #ffffff; 
+            color: #aaaaaa;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            width: 100%; 
         }
 
-        .legend-color {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            margin-right: 5px;
-            border: 1px solid #c0c0c0; 
+        .legend-item:hover {
+            border-color: #b0b0b0;
+            color: #808080;
+        }
+
+        /* 選択時の各イベントカラー定義 */
+        .legend-item.active {
+            border-color: transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* G1: 紫/黒系 -> 白文字 */
+        .legend-item.active.style-G1 {
+            background-color: #845EC2;
+            color: white;
+        }
+        /* G2: 赤/グレー系 -> 白文字 */
+        .legend-item.active.style-G2 {
+            background-color: #f06163;
+            color: white;
+        }
+        /* G3O: オレンジ -> 濃いグレー文字 */
+        .legend-item.active.style-G3O {
+            background-color: #FF9772;
+            color: #303030;
+        }
+        /* G3R: 黄色 -> 濃いグレー文字 */
+        .legend-item.active.style-G3R {
+            background-color: #FFC75F;
+            color: #303030;
+        }
+        /* S1/Amb: 単色に統一(#6de7d7) */
+        .legend-item.active.style-S1AMB {
+            background-color: #6de7d7;
+            color: #303030;
+        }
+        /* 交流会: 薄緑(#A0FA8D) -> 濃いグレー文字 */
+        .legend-item.active.style-Meetup {
+            background-color: #acff5f;
+            color: #303030;
+        }
+        /* その他: 黄緑 -> 濃いグレー文字 */
+        .legend-item.active.style-Other {
+            background-color: #FAF871;
+            color: #303030;
         }
 
         @keyframes fadeIn {
@@ -382,6 +448,7 @@
         .type-G3R { background-color: #FFC75F; }
         .type-S1 { background-color: #6de7d7; }
         .type-Amb { background-color: #6de7b8; }
+        .type-Meetup { background-color: #A0FA8D; } 
         .type-Other { background-color: #FAF871; }
 
 
@@ -452,25 +519,18 @@
         </div>
         
         <div class="keyword-search-group" style="margin-top: 10px;color: #505050;">
-            <label for="city-input">キーワード検索:</label>
+            <label for="city-input">キーワード検索</label>
             <div class="keyword-search-input-wrapper">
                 <input type="text" id="city-input" placeholder="市町村名やイベント名など">
                 <button id="search-button" class="search-button-icon">🔍</button>
             </div>
         </div>
-        <div id="filter-status" style="color: #505050;font-size:10px;"></div>
+        <p>イベントタイプ絞り込み</p>
+        <div id="label-legend-container"></div>
+        
+    </div>
 
-    </div>
-  
-    <div id="label-legend-container">
-        <div class="legend-item"><span class="legend-color label-black"></span>G1</div>
-        <div class="legend-item"><span class="legend-color label-gray"></span>G2</div>
-        <div class="legend-item"><span class="legend-color label-orange"></span>G3(O)</div>
-        <div class="legend-item"><span class="legend-color label-yellow"></span>G3(R)</div>
-        <div class="legend-item"><span class="legend-color label-lightblue"></span>S1</div>
-        <div class="legend-item"><span class="legend-color label-blue"></span>アンバサダー</div>
-        <div class="legend-item"><span class="legend-color label-green"></span>その他</div>
-    </div>
+    <div id="filter-status" style="color: #505050;font-size:10px;"></div>
 
     <div class="calendar-container">
         <div id="calendar-wrapper">
@@ -495,6 +555,16 @@
     };
 
     const JAPANESE_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+    
+    const EVENT_TYPES_LEGEND = [
+        { key: 'G1', label: 'G1', styleClass: 'style-G1', searchKeywords: ['G1大会'] },
+        { key: 'G2', label: 'G2', styleClass: 'style-G2', searchKeywords: ['G2大会'] },
+        { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'オープンクラス'] },
+        { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'レギュラークラス'] },
+        { key: 'S1AMB', label: 'S1,AMB', styleClass: 'style-S1AMB', searchKeywords: ['S1イベント', 'アンバサダーイベント'] },
+        { key: 'Meetup', label: '交流会', styleClass: 'style-Meetup', searchKeywords: ['交流会'] }, 
+        { key: 'Other', label: 'その他', styleClass: 'style-Other', searchKeywords: [] }
+    ];
 
     let TARGET_START_YEAR = new Date().getFullYear(); 
     let TARGET_START_MONTH = new Date().getMonth() + 1; 
@@ -503,6 +573,8 @@
     let ALL_BEYBLADE_EVENTS = [];
     let filteredEvents = []; 
     let returnToDayDate = null; 
+    let activeEventTypes = EVENT_TYPES_LEGEND.map(item => item.key); 
+
     
     const searchButton = document.getElementById('search-button');
     const prefectureContainer = document.getElementById('prefecture-checkbox-container');
@@ -511,6 +583,7 @@
     const calendarWrapper = document.getElementById('calendar-wrapper');
     const eventModal = document.getElementById('event-modal');
     const modalContent = document.getElementById('modal-content');
+    const legendContainer = document.getElementById('label-legend-container');
 
     
     function parseDate(dateStr) {
@@ -546,10 +619,10 @@
             return { class: 'label-yellow', label: '' };
         } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
             return { class: 'label-orange', label: '' };
-        } else if (eventType.includes("S1イベント")) {
+        } else if (eventType.includes("S1イベント") || eventType.includes("アンバサダーイベント")) {
             return { class: 'label-lightblue', label: '' };
-        } else if (eventType.includes("アンバサダーイベント")) {
-            return { class: 'label-blue', label: '' };
+        } else if (eventType.includes("交流会")) { 
+            return { class: 'label-meetup', label: '' };
         } else if (eventType.includes("G2大会")) {
             return { class: 'label-gray', label: '' };
         } else if (eventType.includes("G1大会")) {
@@ -566,13 +639,12 @@
         if(colorClass === 'label-orange') return 'type-G3O';
         if(colorClass === 'label-yellow') return 'type-G3R';
         if(colorClass === 'label-lightblue') return 'type-S1';
+        if(colorClass === 'label-meetup') return 'type-Meetup'; 
         if(colorClass === 'label-blue') return 'type-Amb';
         return 'type-Other';
     }
 
     function showEventDetails(event) {
-        let displayCapacity = event.capacity.replace('定員数 ', '');
-        let displayEligibility = event.eligibility.replace('参加資格：', '');
         
         const badgeClass = getBadgeClass(event.type);
 
@@ -586,14 +658,14 @@
                 <strong>日時:</strong> ${event.time}（ ${event.date} ）
             </p>
             <p>
-                <strong>定員:</strong> ${displayCapacity} 
+                <strong>定員:</strong> ${event.capacity}（ ${event.fee} ）
             </p>
             
             <p><strong>会場:</strong> ${event.location}</p>
             <p><strong>住所:</strong> ${event.address}</p>
             
             <p>
-                <strong>受付:</strong> ${displayEligibility}
+                <strong>受付:</strong> ${event.eligibility}
                 <br>
                 ${event.entry}
             </p>
@@ -764,6 +836,7 @@
             filteredEvents = ALL_BEYBLADE_EVENTS;
 
             populatePrefectureSelect();
+            populateLegendButtons(); 
             
             handleSearch(false); 
             filterStatus.textContent = `${ALL_BEYBLADE_EVENTS.length} 件のイベントを読み込みました。`;
@@ -771,6 +844,42 @@
         } catch (error) {
             filterStatus.textContent = `エラー: ${error.message}`;
             generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+        }
+    }
+
+    // 凡例ボタンを生成し、イベントリスナーを設定する関数
+    function populateLegendButtons() {
+        legendContainer.innerHTML = '';
+        
+        EVENT_TYPES_LEGEND.forEach(item => {
+            const legendItem = document.createElement('div');
+            legendItem.classList.add('legend-item');
+            legendItem.classList.add(item.styleClass); // CSSでの色分け用クラス付与
+            
+            // 初期状態で全てアクティブにする
+            if (activeEventTypes.includes(item.key)) {
+                legendItem.classList.add('active');
+            }
+
+            // アイコンspanを削除し、テキストのみ追加
+            legendItem.appendChild(document.createTextNode(item.label));
+            
+            legendItem.addEventListener('click', () => {
+                legendItem.classList.toggle('active');
+                toggleEventType(item.key);
+                handleSearch();
+            });
+
+            legendContainer.appendChild(legendItem);
+        });
+    }
+
+    function toggleEventType(key) {
+        const index = activeEventTypes.indexOf(key);
+        if (index > -1) {
+            activeEventTypes.splice(index, 1);
+        } else {
+            activeEventTypes.push(key);
         }
     }
 
@@ -990,6 +1099,15 @@
             }, 300);
         }
         
+        if (activeEventTypes.length === 0) {
+            filteredEvents = [];
+            if (updateStatus) {
+                filterStatus.textContent = "表示するイベントを選択してください。";
+            }
+            generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+            return;
+        }
+
         if (ALL_BEYBLADE_EVENTS.length === 0) {
             generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
             return;
@@ -1005,6 +1123,7 @@
         
         let filterDescription = [];
 
+        // 1. 都道府県フィルター
         if (selectedPrefectures.length > 0) {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
@@ -1016,9 +1135,10 @@
                 
                 return selectedPrefectures.some(pref => searchTarget.includes(pref));
             });
-            filterDescription.push(`都道府県: ${selectedPrefectures.join('、').toUpperCase()}`);
+            filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.toUpperCase()).join('、')}`);
         }
 
+        // 2. キーワードフィルター
         if (citySearchText !== "") {
             localFilteredEvents = localFilteredEvents.filter(event => {
                 const searchTarget = [
@@ -1033,12 +1153,43 @@
             filterDescription.push(`キーワード: "${citySearchText}"`);
         }
         
+        // 3. イベントタイプフィルター
+        if (activeEventTypes.length > 0) {
+            const allowedKeywords = activeEventTypes.flatMap(key => 
+                EVENT_TYPES_LEGEND.find(item => item.key === key).searchKeywords
+            );
+            
+            // 'その他'が選択されている場合は、他のタイプに該当しないイベントを含める
+            const includeOther = activeEventTypes.includes('Other');
+            const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
+            
+            localFilteredEvents = localFilteredEvents.filter(event => {
+                const eventType = event.type;
+                
+                const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
+                
+                if (includeOther) {
+                    // 'その他'に該当するイベントかどうかをチェック
+                    const isOther = !otherTypesKeywords.some(keyword => eventType.includes(keyword));
+                    return isMatch || isOther;
+                }
+                
+                return isMatch;
+            });
+            
+            // 全て選択されている場合は「全タイプ」などの表記にするか、省略しても良いが、ここではデバッグ的にも表示
+            if (activeEventTypes.length < EVENT_TYPES_LEGEND.length) {
+                filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key).label).join('、')}`);
+            }
+        }
+
+
         filteredEvents = localFilteredEvents;
 
         if (updateStatus) {
             const descriptionText = filterDescription.length > 0 
                 ? `${filterDescription.join(' / ')} に一致する ${filteredEvents.length} 件のイベントを表示中`
-                : `全地域のイベントを表示中 (${ALL_BEYBLADE_EVENTS.length}件)。`; 
+                : `全イベントを表示中 (${ALL_BEYBLADE_EVENTS.length}件)`; 
             filterStatus.textContent = descriptionText;
         }
         
