@@ -29,11 +29,14 @@ PREFECTURES = [
     "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ]
 
+# 都道府県で始まるかどうかを判定する関数
+def is_prefecture_line(line):
+    return any(line.startswith(pref) for pref in PREFECTURES)
+
 
 def fetch_schedule_data(url):
     """
     Seleniumを使用して、指定されたURLからイベントデータを抽出する
-    (Col1の抽出条件修正: 当日受付をentryへ)
     """
     print(f"スケジュールデータソースに直接アクセス中: {url}")
 
@@ -68,7 +71,7 @@ def fetch_schedule_data(url):
             print("🚨 警告: ヘッダー行しか見つかりませんでした。")
             return []
 
-        print(f"✅ テーブル内に {len(rows)} 行のデータが見つかりました。抽出を開始します。")
+        print(f"✅ テーブル内に {len(rows) - 1} 行のデータが見つかりました。抽出を開始します。")
 
         # ヘッダー行 (rows[0]) はスキップ
         for i, row in enumerate(rows[1:]):
@@ -94,7 +97,10 @@ def fetch_schedule_data(url):
                 time_info = time_match.group(1).strip() if time_match else "時間不明"
 
                 # Raw Type Extraction
-                type_start_index = col1_text.find(time_info) + len(time_info)
+                time_part_length = len(time_info) if time_match else 0
+                time_part_index = col1_text.find(time_info)
+                
+                type_start_index = time_part_index + time_part_length if time_part_index != -1 else -1
                 type_end_index = col1_text.find("詳細はこちら")
                 
                 raw_type_lines = []
@@ -113,10 +119,9 @@ def fetch_schedule_data(url):
                     line = line.strip()
                     if not line: continue
 
-                    # 条件分岐の修正箇所
                     if "参加費：" in line:
                         col1_fee_parts.append(line)
-                    elif "当日受付：" in line:   # 👈 ここを修正 (旧: 参加資格)
+                    elif "当日受付：" in line: 
                         col1_entry_parts.append(line)
                     else:
                         final_type_lines.append(line)
@@ -137,29 +142,48 @@ def fetch_schedule_data(url):
                 fee_parts = col1_fee_parts[:]
                 entry_parts = col1_entry_parts[:] 
                 
-                event_name = "名前不明"
-                location = "-"
-                capacity = "-"
-                eligibility = "-"
-                address_info = "-"
+                event_name = "イベント名不明"
+                location = ""
+                capacity = ""
+                eligibility = ""
+                address_info = ""
+                tel_info = ""
+                
+                # Address判定のために一時的なインデックスを保持
+                temp_address_idx = -1
 
                 # (1) Name (1行目)
                 if num_lines > 0:
                     event_name = lines2[0]
                     consumed_indices.add(0)
 
-                # (2) Location (2行目)
+                # (2) Location (2行目)の処理を修正
+                # 2行目が「定員数」を含まず、かつ「都道府県で始まらない」場合にのみ location とする
                 if num_lines > 1:
-                    if "定員数 " not in lines2[1]:
+                    is_line2_address = is_prefecture_line(lines2[1]) # 2行目が住所か判定
+                    
+                    if "定員数 " not in lines2[1] and not is_line2_address: # 👈 address優先の修正
                         location = lines2[1]
                         consumed_indices.add(1)
-                    else:
-                        location = "-"
-                        # "定員数"を含む場合はここでは処理せず、ループで拾う
+                    # else: 2行目が住所の場合は後で address として処理する
 
                 # (3) Loop for others
                 for idx, line in enumerate(lines2):
                     if idx in consumed_indices:
+                        continue
+                    
+                    # --- Address (住所) --- 👈 address優先のロジック
+                    if is_prefecture_line(line):
+                        address_info = line
+                        consumed_indices.add(idx)
+                        temp_address_idx = idx
+                        continue
+                    
+                    # --- Tel (電話番号) --- 👈 0から始まる場合のみに修正
+                    # 住所が既に見つかっており、次の行が数字の'0'で始まる場合を電話番号と判断
+                    if temp_address_idx == idx - 1 and re.match(r'^\s*0', line):
+                        tel_info = line
+                        consumed_indices.add(idx)
                         continue
 
                     # --- Fee (参加費) ---
@@ -177,28 +201,45 @@ def fetch_schedule_data(url):
                         eligibility = line
                         consumed_indices.add(idx)
 
-                    # --- Address (住所) ---
-                    elif any(line.startswith(pref) for pref in PREFECTURES):
-                        address_info = line
-                        consumed_indices.add(idx)
-                    
                     # --- Entry Logic A: "当日受付：" ---
                     elif "当日受付：" in line:
                         entry_parts.append(line)
                         consumed_indices.add(idx)
                     
-                    # --- Entry Logic B: "参加方法" ---
-                    elif "参加方法" in line:
+                    # --- Entry Logic B: "参加方法" (タイトル行ではない場合) ---
+                    # 詳細タイトル抽出のために、ここでは完全一致の"参加方法"は処理しない
+                    elif "参加方法" in line and line != "参加方法":
                         consumed_indices.add(idx) # ラベル行を使用済みに
                         next_idx = idx + 1
                         if next_idx < num_lines:
                             entry_parts.append(lines2[next_idx])
                             consumed_indices.add(next_idx) # 次の行も使用済みに
-
+                
                 # データの整形・結合
-                fee_info = "\n".join(fee_parts) if fee_parts else "-"
-                entry_info = "\n".join(entry_parts) if entry_parts else "-"
+                fee_info = "\n".join(fee_parts) if fee_parts else ""
+                entry_info = "\n".join(entry_parts) if entry_parts else ""
 
+                # -------------------------------------------------------
+                # 3. Detail Title Extraction and Final Details Body Creation
+                # -------------------------------------------------------
+                
+                detail_title_info = "詳細" 
+                
+                # Title抽出とconsumed_indicesへの追加 (最優先で「お知らせ」を探す)
+                for idx, line in enumerate(lines2):
+                    if idx in consumed_indices:
+                        continue
+                    
+                    if line == "お知らせ":
+                        detail_title_info = "お知らせ"
+                        consumed_indices.add(idx)
+                        break 
+                    
+                    if line == "参加方法":
+                        detail_title_info = "参加方法"
+                        consumed_indices.add(idx)
+                        break
+                        
                 # Details (残り)
                 details_list = []
                 for idx, line in enumerate(lines2):
@@ -206,20 +247,26 @@ def fetch_schedule_data(url):
                         details_list.append(line)
                 
                 location_details = "\n".join(details_list).strip()
-                if not location_details:
+                if not location_details and detail_title_info == "詳細":
                     location_details = "詳細情報なし"
+                elif not location_details:
+                     # タイトル行が抽出されたが本文がない場合、タイトルだけは残す
+                     location_details = f"{detail_title_info}情報なし"
+
 
                 events_data.append({
                     "date": date_info,
                     "time": time_info,
                     "name": event_name,
                     "location": location,
-                    "type": event_type,         # Col 1の残り
-                    "fee": fee_info,            # Col 1 + Col 2
+                    "type": event_type,         
+                    "fee": fee_info,            
                     "capacity": capacity,
                     "eligibility": eligibility, 
                     "address": address_info,
-                    "entry": entry_info,        # Col 1(当日受付) + Col 2(当日受付/参加方法)
+                    "tel": tel_info,            
+                    "entry": entry_info,        
+                    "detailTitle": detail_title_info, 
                     "details": location_details
                 })
 
@@ -240,7 +287,8 @@ def fetch_schedule_data(url):
         print(f"\n❌ エラー: {e}")
         return None
     finally:
-        driver.quit()
+        if 'driver' in locals():
+             driver.quit()
 
 
 def save_to_json(data, filename):
