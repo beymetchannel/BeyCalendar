@@ -872,11 +872,12 @@
         document.body.style.overflow = 'hidden';
     }
 
-    async function fetchSupabaseEvents() {
+async function fetchSupabaseEvents() {
         try {
             const { data, error } = await supabase
                 .from('EventDB')
-                .select('*');
+                .select('*')
+                .eq('checkFlg', true); // 🎉 この行を追加しました
 
             if (error) {
                 console.error('Supabase fetch error:', error);
@@ -902,7 +903,7 @@
             return [];
         }
     }
-
+    
     async function loadDataAndInitialize() {
         try {
             const jsonPromise = fetch('./events.json')
@@ -1348,3 +1349,4 @@
 </script>
 </body>
 </html>
+
