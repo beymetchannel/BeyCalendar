@@ -877,7 +877,7 @@ async function fetchSupabaseEvents() {
             const { data, error } = await supabase
                 .from('EventDB')
                 .select('*')
-                .eq('checkFlg', true); // 🎉 この行を追加しました
+                .eq('checkFlg', true);
 
             if (error) {
                 console.error('Supabase fetch error:', error);
@@ -1349,4 +1349,5 @@ async function fetchSupabaseEvents() {
 </script>
 </body>
 </html>
+
 
