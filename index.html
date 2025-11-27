@@ -356,7 +356,7 @@
 
         .legend-item.active {
             border-color: transparent;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         .legend-item.active.style-G1 {
@@ -608,16 +608,27 @@
 
     function linkifyText(text) {
         if (!text) return '';
-        // http(s)://... または www.... で始まるURLを検出
-        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
         
-        return text.replace(urlRegex, (url) => {
+        let processedText = text.replace(/\n/g, '<br>');
+
+        const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+)/g;
+        
+        return processedText.replace(urlRegex, (fullMatch) => {
+            let url = fullMatch;
+            let trailing = '';
+
+            const unwantedSingleChars = ['(', ')'];
+            while (url.length > 0 && unwantedSingleChars.includes(url.slice(-1))) {
+                trailing = url.slice(-1) + trailing;
+                url = url.slice(0, -1);
+            }
+            
             let href = url;
-            // www. で始まっていて http(s):// がなければ追加
             if (url.startsWith('www.') && !url.match(/^https?:\/\//i)) {
                 href = 'http://' + url;
             }
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
         });
     }
 
@@ -718,6 +729,14 @@
         
         const addressHtml = `<p><strong>住所:</strong> ${addressText}</p>`;
         
+        const tel = event.tel || '';
+        const telDisplay = tel.replace(/\n/g, '<br>');
+        const telLink = tel.replace(/[^\d+]/g, ''); 
+        
+        const telHtml = tel ? 
+            `<p><strong>電話:</strong> <a href="tel:${telLink}">${telDisplay}</a></p>` : 
+            '';
+
         const eligibilityEntryPresent = eligibilityRaw || event.entry;
         const eligibilityEntryHtml = eligibilityEntryPresent ? `
             <p>
@@ -740,6 +759,7 @@
             ${capacityFeeHtml}
             ${locationHtml}
             ${addressHtml}
+            ${telHtml}
             ${eligibilityEntryHtml}
             ${detailsHtml}
         `;
@@ -897,7 +917,8 @@ async function fetchSupabaseEvents() {
                 eligibility: evt.eligibility,
                 entry: evt.entry,
                 detailTitle: evt.detailTitle,
-                details: evt.details
+                details: evt.details,
+                tel: evt.tel
             }));
         } catch (err) {
             console.error('Supabase connection failed:', err);
@@ -1350,6 +1371,3 @@ async function fetchSupabaseEvents() {
 </script>
 </body>
 </html>
-
-
-
