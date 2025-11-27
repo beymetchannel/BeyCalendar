@@ -577,7 +577,11 @@
     let ALL_BEYBLADE_EVENTS = [];
     let filteredEvents = []; 
     let returnToDayDate = null; 
+    
     let activeEventTypes = EVENT_TYPES_LEGEND.map(item => item.key); 
+    let selectedPrefecturesFromStorage = [];
+    let citySearchTextFromStorage = '';
+    let expandedRegionsFromStorage = []; 
 
     
     const searchButton = document.getElementById('search-button');
@@ -588,6 +592,56 @@
     const eventModal = document.getElementById('event-modal');
     const modalContent = document.getElementById('modal-content');
     const legendContainer = document.getElementById('label-legend-container');
+
+
+    // ====================================================================
+    // ⭐ localStorageの操作関数
+    // ====================================================================
+    function saveSearchState() {
+        const expandedRegions = Array.from(prefectureContainer.querySelectorAll('.region-group .checkbox-wrapper.open'))
+            .map(wrapper => {
+                const regionHeader = wrapper.closest('.region-group').querySelector('.region-header');
+                return regionHeader ? regionHeader.textContent : null;
+            })
+            .filter(name => name); 
+
+        const state = {
+            prefectures: Array.from(prefectureContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .filter(cb => !cb.classList.contains('region-select-checkbox'))
+                .map(checkbox => checkbox.value),
+            keyword: cityInput.value.trim(),
+            eventTypes: activeEventTypes,
+            expandedRegions: expandedRegions 
+        };
+        localStorage.setItem('beyCalendarSearchState', JSON.stringify(state));
+    }
+
+    function loadSearchState() {
+        const savedState = localStorage.getItem('beyCalendarSearchState');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                if (state.keyword !== undefined) {
+                    citySearchTextFromStorage = state.keyword;
+                }
+                if (Array.isArray(state.prefectures)) {
+                    selectedPrefecturesFromStorage = state.prefectures;
+                }
+                if (Array.isArray(state.eventTypes)) {
+                    activeEventTypes = state.eventTypes;
+                }
+                if (Array.isArray(state.expandedRegions)) {
+                    expandedRegionsFromStorage = state.expandedRegions;
+                }
+            } catch (e) {
+                console.error('Failed to parse search state from localStorage:', e);
+            }
+        }
+    }
+
+    // ====================================================================
+    // その他のユーティリティ関数
+    // ====================================================================
 
     function formatTime(timeStr) {
         if (!timeStr) return '';
@@ -927,6 +981,8 @@ async function fetchSupabaseEvents() {
     }
     
     async function loadDataAndInitialize() {
+        loadSearchState();
+
         try {
             const jsonPromise = fetch('./events.json')
                 .then(res => {
@@ -975,13 +1031,12 @@ async function fetchSupabaseEvents() {
             populatePrefectureSelect();
             populateLegendButtons(); 
             
-            handleSearch(false); 
+            cityInput.value = citySearchTextFromStorage;
+            restorePrefectureSelection(selectedPrefecturesFromStorage);
             
-            const sourceInfo = [];
-            if(jsonEvents.length > 0) sourceInfo.push(`JSON: ${jsonEvents.length}件`);
-            if(supabaseEvents.length > 0) sourceInfo.push(`DB: ${supabaseEvents.length}件`);
-            
-            filterStatus.textContent = ` ${ALL_BEYBLADE_EVENTS.length}件のイベントを表示中`;
+            restoreRegionExpansion(expandedRegionsFromStorage);
+
+            handleSearch(true); 
 
         } catch (error) {
             console.error(error);
@@ -1007,7 +1062,7 @@ async function fetchSupabaseEvents() {
             legendItem.addEventListener('click', () => {
                 legendItem.classList.toggle('active');
                 toggleEventType(item.key);
-                handleSearch();
+                handleSearch(); 
             });
 
             legendContainer.appendChild(legendItem);
@@ -1021,6 +1076,7 @@ async function fetchSupabaseEvents() {
         } else {
             activeEventTypes.push(key);
         }
+        saveSearchState();
     }
 
     function populatePrefectureSelect() {
@@ -1057,6 +1113,7 @@ async function fetchSupabaseEvents() {
 
             const checkboxWrapper = document.createElement('div');
             checkboxWrapper.classList.add('checkbox-wrapper');
+            checkboxWrapper.dataset.regionName = region; 
             
             prefectures.forEach(pref => {
                 const label = document.createElement('label');
@@ -1085,9 +1142,10 @@ async function fetchSupabaseEvents() {
 
             headerTitle.addEventListener('click', () => {
                 checkboxWrapper.classList.toggle('open');
+                saveSearchState(); 
             });
             
-            regionCheckbox.addEventListener('change', () => {
+             regionCheckbox.addEventListener('change', () => {
                 const select = regionCheckbox.checked;
                 toggleRegionSelection(region, select);
                 handleSearch(); 
@@ -1098,6 +1156,42 @@ async function fetchSupabaseEvents() {
             });
         }
     }
+
+    function restorePrefectureSelection(selectedPrefectures) {
+        if (selectedPrefectures.length === 0) return;
+
+        const allPrefCheckboxes = prefectureContainer.querySelectorAll('input[type="checkbox"][name="prefecture"]');
+        const regionsToUpdate = new Set();
+
+        allPrefCheckboxes.forEach(checkbox => {
+            if (selectedPrefectures.includes(checkbox.value)) {
+                checkbox.checked = true;
+                const label = checkbox.closest('.pref-label');
+                if (label) {
+                    label.classList.add('checked');
+                    regionsToUpdate.add(label.getAttribute('data-region'));
+                }
+            }
+        });
+        
+        regionsToUpdate.forEach(region => {
+            updateRegionCheckboxState(region);
+            const checkboxWrapper = prefectureContainer.querySelector(`.checkbox-wrapper[data-region-name="${region}"]`);
+            if (checkboxWrapper) {
+                checkboxWrapper.classList.add('open');
+            }
+        });
+    }
+
+    function restoreRegionExpansion(expandedRegions) {
+        expandedRegions.forEach(regionName => {
+            const checkboxWrapper = prefectureContainer.querySelector(`.checkbox-wrapper[data-region-name="${regionName}"]`);
+            if (checkboxWrapper) {
+                checkboxWrapper.classList.add('open');
+            }
+        });
+    }
+
 
     function updateRegionCheckboxState(region) {
         const total = prefectureContainer.querySelectorAll(`[data-region="${region}"] input[type="checkbox"]`).length;
@@ -1239,16 +1333,17 @@ async function fetchSupabaseEvents() {
             }, 300);
         }
         
+        saveSearchState();
+
         if (activeEventTypes.length === 0) {
             filteredEvents = [];
-            if (updateStatus) {
-                filterStatus.textContent = "表示するイベントを選択してください。";
-            }
+            filterStatus.textContent = "表示するイベントを選択してください。";
             generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
             return;
         }
 
         if (ALL_BEYBLADE_EVENTS.length === 0) {
+            filterStatus.textContent = "イベントデータがありません。";
             generateCalendar([], TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
             return;
         }
@@ -1272,9 +1367,9 @@ async function fetchSupabaseEvents() {
                     event.details || ''
                 ].join(' ').toLowerCase();
                 
-                return selectedPrefectures.some(pref => searchTarget.includes(pref));
+                return selectedPrefectures.some(pref => searchTarget.includes(pref.replace('県', '').replace('府', '').replace('都', '').replace('道', ''))); 
             });
-            filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.toUpperCase()).join('、')}`);
+            filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('、')}`);
         }
 
         if (citySearchText !== "") {
@@ -1293,7 +1388,7 @@ async function fetchSupabaseEvents() {
         
         if (activeEventTypes.length > 0) {
             const allowedKeywords = activeEventTypes.flatMap(key => 
-                EVENT_TYPES_LEGEND.find(item => item.key === key).searchKeywords
+                EVENT_TYPES_LEGEND.find(item => item.key === key)?.searchKeywords || []
             );
             
             const includeOther = activeEventTypes.includes('Other');
@@ -1313,19 +1408,18 @@ async function fetchSupabaseEvents() {
             });
             
             if (activeEventTypes.length < EVENT_TYPES_LEGEND.length) {
-                filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key).label).join('、')}`);
+                filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key)?.label || '').join('、')}`);
             }
         }
 
 
         filteredEvents = localFilteredEvents;
 
-        if (updateStatus) {
-            const descriptionText = filterDescription.length > 0 
-                ? `${filterDescription.join(' / ')} に一致する ${filteredEvents.length} 件のイベントを表示中`
-                : `全イベントを表示中 (${ALL_BEYBLADE_EVENTS.length}件)`; 
-            filterStatus.textContent = descriptionText;
-        }
+        const descriptionText = filterDescription.length > 0 
+            ? `${filterDescription.join(' / ')} に一致する ${filteredEvents.length} 件のイベントを表示中`
+            : `全イベントを表示中 (${ALL_BEYBLADE_EVENTS.length}件)`; 
+        filterStatus.textContent = descriptionText;
+
         
         generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
         
