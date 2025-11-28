@@ -594,9 +594,6 @@
     const legendContainer = document.getElementById('label-legend-container');
 
 
-    // ====================================================================
-    // ⭐ localStorageの操作関数
-    // ====================================================================
     function saveSearchState() {
         const expandedRegions = Array.from(prefectureContainer.querySelectorAll('.region-group .checkbox-wrapper.open'))
             .map(wrapper => {
@@ -638,10 +635,6 @@
             }
         }
     }
-
-    // ====================================================================
-    // その他のユーティリティ関数
-    // ====================================================================
 
     function formatTime(timeStr) {
         if (!timeStr) return '';
@@ -756,9 +749,16 @@
         if(colorClass === 'label-blue') return 'type-Amb';
         return 'type-Other';
     }
+    
+    function cleanEventTypeText(eventType) {
+        if (!eventType) return '';
+        return eventType.replace('B4ストアカップ', '').trim();
+    }
+
 
     function showEventDetails(event) {
         
+        const eventTypeText = cleanEventTypeText(event.type);
         const badgeClass = getBadgeClass(event.type);
         const timeVal = event.time ? `${event.time}（${event.date}）` : `（${event.date}）`;
         
@@ -803,7 +803,7 @@
         modalContent.innerHTML = `
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
             
-            <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${event.type}</div>
+            <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${eventTypeText}</div>
             <h3>${event.name}</h3>
             
             <p>
@@ -908,9 +908,11 @@
 
                 const detailsCol = document.createElement('div');
                 detailsCol.classList.add('event-details-col');
+                
+                const eventTypeText = cleanEventTypeText(event.type);
 
                 const typeBadge = document.createElement('div');
-                typeBadge.textContent = event.type;
+                typeBadge.textContent = eventTypeText;
                 typeBadge.classList.add('event-type-badge');
                 
                 const badgeClass = getBadgeClass(event.type);
@@ -947,7 +949,13 @@
         document.body.style.overflow = 'hidden';
     }
 
-async function fetchSupabaseEvents() {
+    async function fetchSupabaseEvents() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() - 1);
+        
         try {
             const { data, error } = await supabase
                 .from('EventDB')
@@ -959,7 +967,17 @@ async function fetchSupabaseEvents() {
                 return [];
             }
             
-            return data.map(evt => ({
+            const filteredData = data.filter(evt => {
+                const eventDateParsed = parseDate(evt.date);
+                if (!eventDateParsed) return false;
+
+                const eventDate = new Date(eventDateParsed.year, eventDateParsed.month - 1, eventDateParsed.day);
+                eventDate.setHours(0, 0, 0, 0); 
+                
+                return eventDate.getTime() >= targetDate.getTime();
+            });
+            
+            return filteredData.map(evt => ({
                 name: evt.name,
                 date: formatDate(evt.date), 
                 time: formatTime(evt.time),
