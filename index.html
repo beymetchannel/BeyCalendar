@@ -563,8 +563,8 @@
     const EVENT_TYPES_LEGEND = [
         { key: 'G1', label: 'G1', styleClass: 'style-G1', searchKeywords: ['G1大会'] },
         { key: 'G2', label: 'G2', styleClass: 'style-G2', searchKeywords: ['G2大会'] },
-        { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'オープンクラス'] },
-        { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'レギュラークラス'] },
+        { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'G3大会/チーム戦（オープン'] },
+        { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'G3大会/チーム戦（レギュラー'] },
         { key: 'S1AMB', label: 'S1,AMB', styleClass: 'style-S1AMB', searchKeywords: ['S1イベント', 'アンバサダーイベント'] },
         { key: 'Meetup', label: '交流会', styleClass: 'style-Meetup', searchKeywords: ['交流会'] }, 
         { key: 'Other', label: 'その他', styleClass: 'style-Other', searchKeywords: [] }
@@ -723,7 +723,11 @@
         
         if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
             return { class: 'label-yellow', label: '' };
+        } else if (eventType.includes("G3大会/チーム戦（G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
+            return { class: 'label-label', label: '' };
         } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
+            return { class: 'label-orange', label: '' };
+        } else if (eventType.includes("G3大会/チーム戦（オープン") || eventType.includes("オープンクラス")) {
             return { class: 'label-orange', label: '' };
         } else if (eventType.includes("S1イベント") || eventType.includes("アンバサダーイベント")) {
             return { class: 'label-lightblue', label: '' };
@@ -798,7 +802,20 @@
             </p>
         ` : '';
         
-        const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> ${detailsContent || ''}</p>`;
+        const owner = event.owner || '';
+        const ownerFlg = event.ownerFlg;
+        let ownerHtml = '';
+
+        if (owner && ownerFlg) {
+            const xUrl = `https://x.com/${owner}`;
+            ownerHtml = `
+                <p>
+                    <strong>運営:</strong> <a href="${xUrl}" target="_blank" rel="noopener noreferrer">${owner}</a>
+                </p>
+            `;
+        }
+
+        const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
 
         modalContent.innerHTML = `
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
@@ -815,6 +832,7 @@
             ${addressHtml}
             ${telHtml}
             ${eligibilityEntryHtml}
+            ${ownerHtml}
             ${detailsHtml}
         `;
         
@@ -949,6 +967,7 @@
         document.body.style.overflow = 'hidden';
     }
 
+
     async function fetchSupabaseEvents() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -990,7 +1009,9 @@
                 entry: evt.entry,
                 detailTitle: evt.detailTitle,
                 details: evt.details,
-                tel: evt.tel
+                tel: evt.tel,
+                owner: evt.owner,
+                ownerFlg: evt.ownerFlg
             }));
         } catch (err) {
             console.error('Supabase connection failed:', err);
