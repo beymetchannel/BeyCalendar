@@ -764,7 +764,7 @@
         
         const eventTypeText = cleanEventTypeText(event.type);
         const badgeClass = getBadgeClass(event.type);
-        const timeVal = event.time ? `${event.time}（${event.date}）` : `（${event.date}）`;
+        const timeVal = event.time ? `${event.time} (${event.date})` : `(${event.date})`;
         
         const eligibilityRaw = event.eligibility ? event.eligibility.replace('参加資格：', '').trim() : '';
         const eligibilityContent = linkifyText(eligibilityRaw);
@@ -772,12 +772,15 @@
         const detailsContent = linkifyText(event.details || '');
 
         const capacityPresent = !!event.capacity;
-        const feePresent = !!event.fee;
-        const capacityFeeHtml = (capacityPresent || feePresent) ? `
-            <p>
-                <strong>定員:</strong> ${event.capacity || '-'}（${event.fee || '参加費：-'}）
-            </p>
-        ` : '';
+        const feePresent = !!event.fee && event.fee !== '-';
+        let capacityFeeHtml = '';
+        if (capacityPresent || feePresent) {
+             capacityFeeHtml = `
+                <p>
+                    <strong>定員:</strong> ${event.capacity|| '-'}${feePresent ?` (${event.fee})` : ''} 
+                </p>
+             `;
+        }
 
         const locationHtml = event.location ? `<p><strong>会場:</strong> ${event.location}</p>` : '';
 
@@ -790,6 +793,7 @@
         const tel = event.tel || '';
         const telDisplay = tel.replace(/\n/g, '<br>');
         const telLink = tel.replace(/[^\d+]/g, ''); 
+        const eventName = event.name.replace('B4G2_','');
         
         const telHtml = tel ? 
             `<p><strong>電話:</strong> <a href="tel:${telLink}">${telDisplay}</a></p>` : 
@@ -821,7 +825,7 @@
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
             
             <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${eventTypeText}</div>
-            <h3>${event.name}</h3>
+            <h3>${eventName}</h3>
             
             <p>
                 <strong>日時:</strong> ${timeVal}
@@ -939,7 +943,7 @@
                 detailsCol.appendChild(typeBadge);
 
                 const name = document.createElement('div');
-                name.textContent = event.name;
+                name.textContent = event.name.replace('B4G2_','');
                 name.classList.add('event-name');
                 detailsCol.appendChild(name);
 
