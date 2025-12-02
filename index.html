@@ -861,7 +861,7 @@
             <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
             
             <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${eventTypeText}</div>
-            <h3>${eventName}${navIndicator}</h3>
+            <h3>${eventName}</h3>
             
             <p>
                 <strong>日時:</strong> ${timeVal}
@@ -872,8 +872,8 @@
             ${addressHtml}
             ${telHtml}
             ${eligibilityEntryHtml}
-            ${ownerHtml}
             ${detailsHtml}
+            ${ownerHtml}
         `;
         
         if (direction === 'next') {
@@ -1698,4 +1698,3 @@
 </script>
 </body>
 </html>
-
