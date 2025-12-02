@@ -290,12 +290,9 @@
           max-width: 500px; 
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
           animation: fadeIn 0.3s;
-          /* overflow-y: auto; <-- スライドインアニメーションのために内側の要素で管理 */
-          
-          /* --- スライドアニメーションのために追加/変更 --- */
+
           position: relative;
           overflow: hidden; 
-          /* ------------------------------------- */
       }
 
         #modal-content h3 {
@@ -421,16 +418,12 @@
             width: 95%;
             max-width: 600px;
             max-height: calc(100dvh - 40px);
-            /* overflow-y: auto; <-- スライドアニメーションのために内側の要素で管理 */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            
-            /* --- スライドアニメーションのために追加/変更 --- */
+
             position: relative;
             overflow: hidden; 
-            /* ------------------------------------- */
         }
-        
-        /* --- 新しいスライドアニメーションのキーフレーム --- */
+
         @keyframes slideInFromRight {
             from { transform: translateX(50px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -440,7 +433,6 @@
             to { transform: translateX(0); opacity: 1; }
         }
         
-        /* スライドインを適用するクラス */
         .content-slide-in-next {
             animation: slideInFromRight 0.3s ease-out forwards;
         }
@@ -610,11 +602,9 @@
     let citySearchTextFromStorage = '';
     let expandedRegionsFromStorage = []; 
     
-    // --- スワイプ機能用のグローバル変数 ---
     let swipeableEvents = []; 
     let currentEventIndex = -1;
     let uniqueEventDates = []; 
-    // ------------------------------------
 
     
     const searchButton = document.getElementById('search-button');
@@ -738,15 +728,11 @@
         return null;
     }
     
-    // --- スワイプ機能用のヘルパー関数 ---
     function getUniqueEventDates(events) {
         const dateStrings = events.map(e => e.dateString).filter(d => d);
-        // Dateオブジェクトに変換してソートすることで、日付として正しく並べ替える
         const sortedDates = dateStrings.sort((a, b) => new Date(a) - new Date(b));
-        // 重複を除いたリストを返す
         return [...new Set(sortedDates)];
     }
-    // ------------------------------------
 
 
     function getTimeValue(timeStr) {
@@ -802,9 +788,7 @@
         if (!eventType) return '';
         return eventType.replace('B4ストアカップ', '').trim();
     }
-    
-    // --- イベント詳細モーダル内容更新関数（スワイプ用） ---
-    // direction パラメータを追加: 'next' または 'prev'
+
     function updateEventDetailsModal(event, eventList, direction = null) {
         
         const eventTypeText = cleanEventTypeText(event.type);
@@ -830,7 +814,6 @@
         const locationHtml = event.location ? `<p><strong>会場:</strong> ${event.location}</p>` : '';
 
         const address = event.address || '';
-        // NOTE: linkifyText will handle the map link creation based on address
         const mapLink = address ? `href="http://maps.google.com/?q=${encodeURIComponent(address)}"` : ''; 
         const addressText = address ? `<a ${mapLink} target="_blank" rel="noopener noreferrer">${address}</a>` : '';
         
@@ -867,12 +850,9 @@
 
         const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
         
-        // スワイプナビゲーション表示を追加
         const navIndicator = eventList.length > 1 ? ` (${currentEventIndex + 1}/${eventList.length})` : '';
 
-        // 新しいコンテンツを格納するラッパー要素を作成
         const newContentWrapper = document.createElement('div');
-        // event-modal-contentのpadding(20px)をここで再現し、内側のコンテンツはスクロール可能にする
         newContentWrapper.style.padding = '20px';
         newContentWrapper.style.maxHeight = '90vh';
         newContentWrapper.style.overflowY = 'auto';
@@ -896,29 +876,22 @@
             ${detailsHtml}
         `;
         
-        // アニメーションクラスを適用
         if (direction === 'next') {
             newContentWrapper.classList.add('content-slide-in-next');
         } else if (direction === 'prev') {
             newContentWrapper.classList.add('content-slide-in-prev');
         }
 
-        // 既存のコンテンツを新しいラッパー要素で置き換える
         modalContent.innerHTML = '';
-        // modalContentのpadding(20px)はCSSから削除し、newContentWrapperに移したため、
-        // #modal-contentの背景色がスライドするコンテンツに追従するようになる
         modalContent.style.padding = '0'; 
         modalContent.appendChild(newContentWrapper);
 
-        // コンテンツ更新後にスワイプを再設定
         setupSwipe(modalContent, showPrevEvent, showNextEvent);
     }
-    // --------------------------------------------------------------------
 
 
     function showEventDetails(event, eventList = filteredEvents) {
         
-        // イベントリストを日付と時間でソートし、swipableEventsに設定
         eventList.sort((a, b) => {
             if (a.dateString !== b.dateString) {
                 return new Date(a.dateString) - new Date(b.dateString);
@@ -935,20 +908,16 @@
         swipeableEvents = eventList;
         currentEventIndex = index;
 
-        // モーダルコンテンツの更新 (初回表示は direction = null)
         updateEventDetailsModal(event, eventList);
         
-        // モーダルを表示
         eventModal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; 
     }
     
-    // --- スワイプナビゲーション関数（イベント詳細用） ---
     function showPrevEvent() {
         if (currentEventIndex > 0) {
             currentEventIndex--;
             const prevEvent = swipeableEvents[currentEventIndex];
-            // direction = 'prev' を渡す
             updateEventDetailsModal(prevEvent, swipeableEvents, 'prev'); 
         }
     }
@@ -957,14 +926,13 @@
         if (currentEventIndex < swipeableEvents.length - 1) {
             currentEventIndex++;
             const nextEvent = swipeableEvents[currentEventIndex];
-            // direction = 'next' を渡す
             updateEventDetailsModal(nextEvent, swipeableEvents, 'next'); 
         }
     }
     
     function closeEventModal() {
         eventModal.style.display = 'none';
-        modalContent.style.padding = '20px'; // モーダルを閉じる際にpaddingを元に戻す
+        modalContent.style.padding = '20px';
 
         if (returnToDayDate) {
             const eventsForDay = filteredEvents.filter(event => 
@@ -987,13 +955,11 @@
         }
     });
 
-    // --- スワイプ検出の共通ロジック ---
     function setupSwipe(element, onSwipeRight, onSwipeLeft) {
         let touchstartX = 0;
         let touchendX = 0;
         const SWIPE_THRESHOLD = 50; 
 
-        // 既存のイベントリスナーがあれば削除してから再設定（コンテンツが切り替わるため）
         element.removeEventListener('touchstart', element.touchStartHandler);
         element.removeEventListener('touchend', element.touchEndHandler);
 
@@ -1015,27 +981,19 @@
                 return; 
             }
 
-            // 右スワイプ (diff > 0) -> 前の項目へ (onSwipeRight)
             if (diff > 0) {
                 onSwipeRight();
             } 
-            // 左スワイプ (diff < 0) -> 次の項目へ (onSwipeLeft)
             else {
                 onSwipeLeft();
             }
         }
     }
-    // ------------------------------------
 
-
-    // --- 日付別イベント一覧モーダル内容更新関数（スワイプ用） ---
-    // direction パラメータを追加: 'next' または 'prev'
     function updateDayModalContent(contentElement, currentDateString, currentDayEvents, direction = null) {
         
-        // 新しいコンテンツを格納するラッパー要素を作成
         const newContentWrapper = document.createElement('div');
         newContentWrapper.classList.add('day-list-content-wrapper');
-        // event-list-modal-contentのpadding(10px)をここで再現し、内側のコンテンツはスクロール可能にする
         newContentWrapper.style.padding = '10px';
         newContentWrapper.style.maxHeight = 'calc(100dvh - 40px)';
         newContentWrapper.style.overflowY = 'auto';
@@ -1057,7 +1015,7 @@
                 
                 card.onclick = () => {
                     returnToDayDate = currentDateString; 
-                    showEventDetails(event, currentDayEvents); // その日のイベントリストを渡して、その中でのスワイプを可能にする
+                    showEventDetails(event, currentDayEvents); 
                     contentElement.closest('.event-list-modal-overlay').remove(); 
                 };
 
@@ -1109,19 +1067,16 @@
             newContentWrapper.appendChild(listContainer);
         }
 
-        // アニメーションを適用
         if (direction === 'next') {
             newContentWrapper.classList.add('content-slide-in-next');
         } else if (direction === 'prev') {
             newContentWrapper.classList.add('content-slide-in-prev');
         }
 
-        // 既存のコンテンツを新しいラッパー要素で置き換える
         contentElement.innerHTML = '';
-        contentElement.style.padding = '0'; // paddingを内側ラッパーに移したため削除
+        contentElement.style.padding = '0'; 
         contentElement.appendChild(newContentWrapper);
     }
-    // --------------------------------------------------------------------
 
 
     function createDayEventModal(dateString, dayEvents) {
@@ -1144,7 +1099,7 @@
         const content = document.createElement('div');
         content.classList.add('event-list-modal-content');
         
-        // --- スワイプ機能の実装 ---
+
         let currentDayIndex = uniqueEventDates.indexOf(dateString);
         let currentDateString = dateString;
 
@@ -1155,7 +1110,7 @@
                 const eventsForPrevDay = filteredEvents.filter(event => event.dateString === prevDate);
                 eventsForPrevDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
                 currentDateString = prevDate;
-                // direction = 'prev' を渡す
+
                 updateDayModalContent(content, prevDate, eventsForPrevDay, 'prev'); 
             }
         }
@@ -1167,17 +1122,14 @@
                 const eventsForNextDay = filteredEvents.filter(event => event.dateString === nextDate);
                 eventsForNextDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
                 currentDateString = nextDate;
-                // direction = 'next' を渡す
+
                 updateDayModalContent(content, nextDate, eventsForNextDay, 'next'); 
             }
         }
 
-        // 初期コンテンツの設定 (初回表示は direction = null)
         updateDayModalContent(content, dateString, dayEvents);
         
-        // スワイプの設定
         setupSwipe(content, showPrevDay, showNextDay); 
-        // ------------------------
 
         overlay.appendChild(content);
 
@@ -1280,7 +1232,6 @@
                 })
                 .filter(event => event); 
             
-            // イベントを日付と時間でソート
             ALL_BEYBLADE_EVENTS.sort((a, b) => {
                 if (a.dateString !== b.dateString) {
                     return new Date(a.dateString) - new Date(b.dateString);
@@ -1685,7 +1636,7 @@
             }
         }
         
-        // フィルタリング後、再度日付と時間でソート
+
         localFilteredEvents.sort((a, b) => {
             if (a.dateString !== b.dateString) {
                 return new Date(a.dateString) - new Date(b.dateString);
@@ -1694,7 +1645,6 @@
         });
 
         filteredEvents = localFilteredEvents;
-        // 日付別モーダルのスワイプ用にユニークな日付リストを更新
         uniqueEventDates = getUniqueEventDates(filteredEvents); 
 
 
@@ -1748,3 +1698,4 @@
 </script>
 </body>
 </html>
+
