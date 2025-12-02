@@ -21,6 +21,7 @@
             padding: 10px;
             background-color: #f4f4f4;
             overflow-x: hidden;
+            top: calc(20px + env(safe-area-inset-top)); 
         }
         h1 {
             text-align: center;
@@ -269,7 +270,7 @@
           position: fixed;
           z-index: 1000;
           left: 0;
-          top: 0;
+          top: calc(20px + env(safe-area-inset-top)); 
           width: 100%;
           height: 100dvh;
           background-color: rgba(0, 0, 0, 0.7);
