@@ -440,7 +440,7 @@
             align-items: center;
             overflow: hidden; 
             border-radius: 0; 
-            transition: opacity 0.5s;
+            transition: all 0.5s;
             padding-bottom: 20px; 
         }
 
@@ -732,7 +732,7 @@
         
         
         guideOverlay.style.opacity = '0';
-        guideOverlay.style.transition = 'opacity 0.5s'; 
+        guideOverlay.style.transition = 'all 0.5s'; 
 
 
         const guideContent = document.createElement('div');
@@ -753,7 +753,7 @@
 
         overlayElement.appendChild(guideOverlay); 
 
-        
+        guideOverlay.offsetHeight;
         
         setTimeout(() => {
             guideOverlay.style.opacity = '1'; 
@@ -1876,4 +1876,3 @@
 </script>
 </body>
 </html>
-
