@@ -18,10 +18,9 @@
         body {
             font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, Osaka, Arial, Helvetica, Verdana, sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px; 
             background-color: #f4f4f4;
             overflow-x: hidden;
-            top: calc(20px + env(safe-area-inset-top)); 
         }
         h1 {
             text-align: center;
@@ -282,8 +281,6 @@
       #modal-content {
           background-color: #ffffff;
           max-height: 90dvh; 
-
-          margin-bottom: 5dvh; 
           padding: 20px;
           border: 1px solid #cccccc;
           border-radius: 8px;
@@ -291,18 +288,15 @@
           max-width: 500px;
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
           animation: fadeIn 0.3s;
-
-
           position: relative;
           overflow: hidden;
-
       }
 
         #modal-content h3 {
             color: #505050;
             border-bottom: 2px solid #B3FF52;
             padding-bottom: 5px;
-            margin-top: 0; 
+            margin-top: 0;
         }
 
         #modal-content p {
@@ -425,8 +419,8 @@
             max-width: 600px;
             max-height: 100%;
             position: relative;
-            overflow: hidden;
-
+            overflow-y: auto; 
+            overflow-x: hidden; 
         }
 
         @keyframes slideInFromRight {
@@ -485,6 +479,7 @@
             cursor: pointer;
             transition: background-color 0.2s;
             gap: 10px;
+            margin-bottom: 5px;
         }
         .event-card:hover {
             background-color: rgb(245, 245, 245);
@@ -569,7 +564,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const supabaseUrl = 'https://yyrsscvofuoufkujetgf.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cnNzY3ZvZnVvdWZrdWpldGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzIxMjksImV4cCI6MjA3OTYwODEyOX0.mNPIAGFKhJ65dsSllBprGYk3yZfnJXfYmDcdljW8xA4';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cnNzY3ZvZnVvdWZrdWpldGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzIxMjksImV4cCI6MjA3OTYwODEyOX0.mNPIAGFKhN65dsSllBprGYk3yZfnJXfYmDcdljW8xA4';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const JAPAN_PREFECTURES_BY_REGION = {
@@ -611,6 +606,7 @@
     let swipeableEvents = []; 
     let currentEventIndex = -1;
     let uniqueEventDates = []; 
+    let allCalendarDates = [];
 
     
     const searchButton = document.getElementById('search-button');
@@ -740,6 +736,33 @@
         return [...new Set(sortedDates)];
     }
 
+    function getAllDatesInCalendarRange() {
+        const dates = [];
+        let currentYear = TARGET_START_YEAR;
+        let currentMonth = TARGET_START_MONTH;
+        const maxYear = TARGET_MAX_DATE.getFullYear();
+        const maxMonth = TARGET_MAX_DATE.getMonth() + 1;
+        const maxDay = TARGET_MAX_DATE.getDate();
+
+        while (currentYear < maxYear || (currentYear === maxYear && currentMonth <= maxMonth)) {
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (currentYear === maxYear && currentMonth === maxMonth && day > maxDay) {
+                    break;
+                }
+                const dateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                dates.push(dateString);
+            }
+
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+        }
+        return dates;
+    }
 
     function getTimeValue(timeStr) {
         if (!timeStr) return 99999; 
@@ -803,7 +826,10 @@
         
         const eligibilityRaw = event.eligibility ? event.eligibility.replace('参加資格：', '').trim() : '';
         const eligibilityContent = linkifyText(eligibilityRaw);
+        
         const entryContent = linkifyText(event.entry || '');
+        const entryDisplay = entryContent ? ` (${entryContent})` : '';
+
         const detailsContent = linkifyText(event.details || '');
 
         const capacityPresent = !!event.capacity;
@@ -812,7 +838,7 @@
         if (capacityPresent || feePresent) {
              capacityFeeHtml = `
                 <p>
-                    <strong>定員:</strong> ${event.capacity|| '-'}${feePresent ?` (${event.fee})` : ''} 
+                    <strong>定員:</strong> ${event.capacity|| '-'}${(feePresent && event.fee) ?` (${event.fee})` : ''} 
                 </p>
              `;
         }
@@ -835,9 +861,10 @@
             '';
 
         const eligibilityEntryPresent = eligibilityRaw || event.entry;
+        
         const eligibilityEntryHtml = eligibilityEntryPresent ? `
             <p>
-                <strong>受付:</strong> ${eligibilityContent || '-'} (${entryContent || '-'})
+                <strong>受付:</strong> ${eligibilityContent || '-'} ${entryDisplay}
             </p>
         ` : '';
         
@@ -864,7 +891,6 @@
         newContentWrapper.style.overflowY = 'auto';
 
         newContentWrapper.innerHTML = `
-            <button class="fixed-close-btn" onclick="closeEventModal()">×</button>
             
             <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${eventTypeText}</div>
             <h3>${eventName}</h3>
@@ -916,6 +942,12 @@
 
         updateEventDetailsModal(event, eventList);
         
+        const closeButton = document.createElement('button');
+        closeButton.classList.add('fixed-close-btn');
+        closeButton.innerHTML = '×';
+        closeButton.onclick = closeEventModal;
+        eventModal.appendChild(closeButton);
+
         eventModal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; 
     }
@@ -939,6 +971,11 @@
     function closeEventModal() {
         eventModal.style.display = 'none';
         modalContent.style.padding = '20px';
+
+        const closeButton = eventModal.querySelector('.fixed-close-btn');
+        if (closeButton) {
+            closeButton.remove();
+        }
 
         if (returnToDayDate) {
             const eventsForDay = filteredEvents.filter(event => 
@@ -1001,8 +1038,6 @@
         const newContentWrapper = document.createElement('div');
         newContentWrapper.classList.add('day-list-content-wrapper');
         newContentWrapper.style.padding = '10px';
-        newContentWrapper.style.maxHeight = 'calc(100dvh - 40px)';
-        newContentWrapper.style.overflowY = 'auto';
 
 
         const date = new Date(currentDateString);
@@ -1106,13 +1141,13 @@
         content.classList.add('event-list-modal-content');
         
 
-        let currentDayIndex = uniqueEventDates.indexOf(dateString);
+        let currentDayIndex = allCalendarDates.indexOf(dateString);
         let currentDateString = dateString;
 
         function showPrevDay() {
             if (currentDayIndex > 0) {
                 currentDayIndex--;
-                const prevDate = uniqueEventDates[currentDayIndex];
+                const prevDate = allCalendarDates[currentDayIndex];
                 const eventsForPrevDay = filteredEvents.filter(event => event.dateString === prevDate);
                 eventsForPrevDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
                 currentDateString = prevDate;
@@ -1122,9 +1157,9 @@
         }
 
         function showNextDay() {
-            if (currentDayIndex < uniqueEventDates.length - 1) {
+            if (currentDayIndex < allCalendarDates.length - 1) {
                 currentDayIndex++;
-                const nextDate = uniqueEventDates[currentDayIndex];
+                const nextDate = allCalendarDates[currentDayIndex];
                 const eventsForNextDay = filteredEvents.filter(event => event.dateString === nextDate);
                 eventsForNextDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
                 currentDateString = nextDate;
@@ -1652,6 +1687,7 @@
 
         filteredEvents = localFilteredEvents;
         uniqueEventDates = getUniqueEventDates(filteredEvents); 
+        allCalendarDates = getAllDatesInCalendarRange();
 
 
         const descriptionText = filterDescription.length > 0 
@@ -1704,5 +1740,3 @@
 </script>
 </body>
 </html>
-
-
