@@ -125,6 +125,10 @@
         }
 
         .day-cell { min-height: 40px; padding: 5px; border-right: 1px solid #cccccc; border-bottom: 1px solid #cccccc; position: relative; overflow: hidden;}
+        
+        .day-cell.today-cell { 
+            background-color: #EDFFED !important;
+        }
 
         .day-number {
             font-size: 10px;
@@ -380,7 +384,7 @@
             color: #303030;
         }
         .legend-item.active.style-Meetup {
-            background-color: #acff5f;
+            background-color: #A0FA8D;
             color: #303030;
         }
         .legend-item.active.style-Other {
@@ -669,6 +673,8 @@
     let uniqueEventDates = []; 
     let allCalendarDates = [];
 
+    let savedScrollPosition = 0;
+    let isReturningFromDetail = false;
     
     const searchButton = document.getElementById('search-button');
     const prefectureContainer = document.getElementById('prefecture-checkbox-container');
@@ -818,6 +824,25 @@
             
             return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
         });
+    }
+
+    function replaceFullWidthSpaces(text) {
+        if (typeof text !== 'string') return text;
+        return text.replace(/　/g, ' ');
+    }
+
+    function cleanEventStrings(event) {
+        const cleaned = {};
+        for (const key in event) {
+            if (Object.prototype.hasOwnProperty.call(event, key)) {
+                let value = event[key];
+                if (typeof value === 'string') {
+                    value = replaceFullWidthSpaces(value); 
+                }
+                cleaned[key] = value;
+            }
+        }
+        return cleaned;
     }
 
 
@@ -1097,6 +1122,7 @@
         }
 
         if (returnToDayDate) {
+            isReturningFromDetail = true;
             const eventsForDay = filteredEvents.filter(event => 
                 event.dateString === returnToDayDate
             );
@@ -1178,6 +1204,10 @@
                 card.classList.add('event-card');
                 
                 card.onclick = () => {
+                    const listModalContent = card.closest('.event-list-modal-content');
+                    if (listModalContent) {
+                        savedScrollPosition = listModalContent.scrollTop;
+                    }
                     returnToDayDate = currentDateString; 
                     showEventDetails(event, currentDayEvents); 
                     contentElement.closest('.event-list-modal-overlay').remove(); 
@@ -1313,6 +1343,13 @@
 
         document.body.appendChild(overlay);
         document.body.style.overflow = 'hidden';
+
+        const scrollPositionToApply = isReturningFromDetail ? savedScrollPosition : 0;
+        isReturningFromDetail = false;
+
+        setTimeout(() => {
+            content.scrollTop = scrollPositionToApply;
+        }, 0);
     }
 
 
@@ -1386,9 +1423,11 @@
                 fetchSupabaseEvents()
             ]);
             
+
             const combinedEvents = [...jsonEvents, ...supabaseEvents];
             
             ALL_BEYBLADE_EVENTS = combinedEvents
+                .map(event => cleanEventStrings(event))
                 .map(event => {
                     const parsedDate = parseDate(event.date);
                     if (!parsedDate) return null;
@@ -1622,6 +1661,9 @@
     function generateCalendar(events, startYear, startMonth, maxDate) {
         calendarWrapper.innerHTML = ''; 
         
+        const today = new Date(); 
+        today.setHours(0, 0, 0, 0); 
+
         const maxYear = maxDate.getFullYear();
         const maxMonth = maxDate.getMonth() + 1;
 
@@ -1661,6 +1703,13 @@
                 const dayCell = document.createElement('div');
                 dayCell.classList.add('day-cell');
                 
+                const currentDate = new Date(currentYear, currentMonth - 1, day);
+                currentDate.setHours(0, 0, 0, 0);
+                
+                if (currentDate.getTime() === today.getTime()) {
+                    dayCell.classList.add('today-cell'); 
+                }
+
                 const dayNumber = document.createElement('span');
                 dayNumber.classList.add('day-number');
                 
@@ -1849,6 +1898,8 @@
             console.error("day-number要素にdata-date属性がありません。");
             return;
         }
+
+        isReturningFromDetail = false;
 
         const eventsForDay = filteredEvents.filter(event => 
             event.dateString === dateString
