@@ -1768,7 +1768,7 @@
                     event.details || ''
                 ].join(' ').toLowerCase();
                 
-                return selectedPrefectures.some(pref => searchTarget.includes(pref.replace('県', '').replace('府', '').replace('都', '').replace('道', ''))); 
+                return selectedPrefectures.some(pref => searchTarget.includes(pref)); 
             });
             filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('、')}`);
         }
