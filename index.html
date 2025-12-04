@@ -1521,6 +1521,7 @@
                 checkbox.name = 'prefecture';
                 
                 label.appendChild(checkbox);
+
                 label.appendChild(document.createTextNode(pref));
                 
                 checkbox.addEventListener('change', () => {
@@ -1751,7 +1752,7 @@
         
         const selectedPrefectures = Array.from(prefectureContainer.querySelectorAll('input[type="checkbox"]:checked'))
             .filter(cb => !cb.classList.contains('region-select-checkbox')) 
-            .map(checkbox => checkbox.value.toLowerCase());
+            .map(checkbox => checkbox.value);
         
         const citySearchText = cityInput.value.trim().toLowerCase();
         
@@ -1761,14 +1762,8 @@
 
         if (selectedPrefectures.length > 0) {
             localFilteredEvents = localFilteredEvents.filter(event => {
-                const searchTarget = [
-                    event.address || '', 
-                    event.location || '',
-                    event.name || '',
-                    event.details || ''
-                ].join(' ').toLowerCase();
-                
-                return selectedPrefectures.some(pref => searchTarget.includes(pref)); 
+                const eventAddress = event.address || '';
+                return selectedPrefectures.some(pref => eventAddress.startsWith(pref)); 
             });
             filterDescription.push(`都道府県: ${selectedPrefectures.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('、')}`);
         }
