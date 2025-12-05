@@ -39,7 +39,7 @@
             width: 80%;
             max-width: 300px; 
             height: auto;
-            margin-top: 10px;
+            margin-top: 20px;
         }
         #version-label{
             display: block;
@@ -607,12 +607,36 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        #back-to-top {
+            position: fixed;
+            bottom: calc(20px + env(safe-area-inset-bottom));
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 900;
+            backdrop-filter: blur(2px);
+            display: block;
+            transition: opacity 0.3s, background-color 0.2s;
+        }
+        #back-to-top p{
+            margin: 0;
+            padding: 0;
+        }
+
     </style>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.4.4</label>
+        <label id="version-label">version: β.5.0</label>
     </div>
         
     <div class="search-container">
@@ -645,6 +669,8 @@
         <div id="modal-content">
             </div>
     </div>
+    
+    <button id="back-to-top"><p style="font-size:20px; font-weight: bold;">︿</p><p style="margin-bottom: 15px;">TOP</p></button>
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -705,7 +731,15 @@
     const eventModal = document.getElementById('event-modal');
     const modalContent = document.getElementById('modal-content');
     const legendContainer = document.getElementById('label-legend-container');
-
+    
+    const topButton = document.getElementById('back-to-top');
+    if(topButton) {
+        topButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+            });
+        });
+    }
 
     function saveSearchState() {
         const expandedRegions = Array.from(prefectureContainer.querySelectorAll('.region-group .checkbox-wrapper.open'))
@@ -1085,6 +1119,8 @@
 
     function showEventDetails(event, eventList = filteredEvents) {
         
+        if(topButton) topButton.style.display = 'none';
+
         eventList.sort((a, b) => {
             if (a.dateString !== b.dateString) {
                 return new Date(a.dateString) - new Date(b.dateString);
@@ -1153,6 +1189,7 @@
             returnToDayDate = null; 
         } else {
             document.body.style.overflow = ''; 
+            if(topButton) topButton.style.display = 'block';
         }
     }
     window.closeEventModal = closeEventModal;
@@ -1294,6 +1331,8 @@
 
 
     function createDayEventModal(dateString, dayEvents) {
+        if(topButton) topButton.style.display = 'none';
+
         document.querySelector('.event-list-modal-overlay')?.remove();
 
         const overlay = document.createElement('div');
@@ -1305,7 +1344,8 @@
         
         closeButton.onclick = () => {
             overlay.remove();
-            document.body.style.overflow = ''; 
+            document.body.style.overflow = '';
+            if(topButton) topButton.style.display = 'block';
         };
         
         overlay.appendChild(closeButton);
@@ -1350,7 +1390,8 @@
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
-                document.body.style.overflow = ''; 
+                document.body.style.overflow = '';
+                if(topButton) topButton.style.display = 'block';
             }
         });
         
@@ -1770,11 +1811,7 @@
                     dayCell.appendChild(eventLabel);
                 });
 
-                // ★★★ 修正箇所: dayCellのクリックハンドラを修正 ★★★
                 dayCell.onclick = (e) => {
-                    // イベントラベルがクリックされた場合は、イベント詳細モーダルを開くためにイベントラベルのonclickが実行され、
-                    // e.stopPropagation()が呼ばれているため、dayCellのonclickは実行されない。
-                    // そのため、ここではdayNumberがクリックされた場合と同様の処理を実行する。
                     const targetDateElement = dayCell.querySelector('.day-number');
                     if (targetDateElement && targetDateElement.dataset.date) {
                          dayClickHandler({ currentTarget: targetDateElement });
@@ -1903,22 +1940,9 @@
         
         generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
         
-        // dayClickHandlerをdayCellに設定したため、ここではaddDayNumberClickHandlersは不要
-        // addDayNumberClickHandlers(); 
     }
 
-    // dayCellのクリックで処理されるため、day-numberのクリックハンドラは不要になりました。
-    // function addDayNumberClickHandlers() {
-    //     const allDayElements = document.querySelectorAll('.day-number');
-
-    //     allDayElements.forEach(dayEl => {
-    //         dayEl.removeEventListener('click', dayClickHandler);
-    //         dayEl.addEventListener('click', dayClickHandler);
-    //     });
-    // }
-
     function dayClickHandler(e) {
-        // e.currentTargetはday-number要素
         const dayEl = e.currentTarget; 
         const dateString = dayEl.dataset.date; 
 
