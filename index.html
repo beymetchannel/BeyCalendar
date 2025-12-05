@@ -560,7 +560,6 @@
             cursor: pointer;
             transition: background-color 0.2s;
             gap: 10px;
-            margin-bottom: 5px;
         }
         .event-card:hover {
             background-color: rgb(245, 245, 245);
@@ -621,6 +620,7 @@
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
+            margin-bottom: 0px;
             z-index: 900;
             backdrop-filter: blur(2px);
             display: block;
@@ -636,7 +636,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.5.0</label>
+        <label id="version-label">version: β.5.2</label>
     </div>
         
     <div class="search-container">
@@ -1078,7 +1078,9 @@
 
         const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
         
-        const navIndicator = eventList.length > 1 ? ` (${currentEventIndex + 1}/${eventList.length})` : '';
+        const navIndicator = eventList.length > 1 ? 
+            `<div style="font-size: 12px; text-align: center; color: #808080; margin-bottom: 0px;">( ${currentEventIndex + 1} / ${eventList.length} イベント )</div>` 
+            : '';
 
         const newContentWrapper = document.createElement('div');
         newContentWrapper.style.padding = '20px';
@@ -1101,7 +1103,7 @@
             ${eligibilityEntryHtml}
             ${detailsHtml}
             ${ownerHtml}
-        `;
+            ${navIndicator} `;
         
         if (direction === 'next') {
             newContentWrapper.classList.add('content-slide-in-next');
@@ -1121,23 +1123,31 @@
         
         if(topButton) topButton.style.display = 'none';
 
-        eventList.sort((a, b) => {
+        
+        let targetEventList = eventList;
+        if (returnToDayDate !== event.dateString) {
+             
+             targetEventList = eventList.filter(e => e.dateString === event.dateString);
+        }
+
+        
+        targetEventList.sort((a, b) => {
             if (a.dateString !== b.dateString) {
                 return new Date(a.dateString) - new Date(b.dateString);
             }
             return getTimeValue(a.time) - getTimeValue(b.time);
         });
         
-        const index = eventList.findIndex(e => 
+        const index = targetEventList.findIndex(e => 
             e.dateString === event.dateString && 
             e.time === event.time && 
             e.name === event.name
         );
         
-        swipeableEvents = eventList;
+        swipeableEvents = targetEventList; 
         currentEventIndex = index;
 
-        updateEventDetailsModal(event, eventList);
+        updateEventDetailsModal(event, targetEventList);
         
         const closeButton = document.createElement('button');
         closeButton.classList.add('fixed-close-btn');
