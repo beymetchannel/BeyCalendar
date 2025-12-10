@@ -144,7 +144,7 @@
             color: #505050;
         }
 
-        .day-cell { min-height: 40px; padding: 5px; border-right: 1px solid #cccccc; border-bottom: 1px solid #cccccc; position: relative; overflow: hidden;}
+        .day-cell { min-height: 40px; padding: 5px 2px; border-right: 1px solid #cccccc; border-bottom: 1px solid #cccccc; position: relative; overflow: hidden;}
         
         .day-cell.today-cell { 
             background-color: #EDFFED !important;
@@ -637,7 +637,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.5.4</label>
+        <label id="version-label">version: β.5.5</label>
     </div>
         
     <div class="search-container">
@@ -654,7 +654,12 @@
                 <button id="search-button" class="search-button-icon">🔍</button>
             </div>
         </div>
-        <p>イベントタイプ絞り込み</p>
+        <div style="flex-basis: 100%; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0px;">
+            <p style="margin-bottom: 0;">イベントタイプ絞り込み</p>
+            <label style="font-size: 13px; color: #505050; font-weight: bold; cursor: pointer;">
+                <input type="checkbox" id="type-select-all-checkbox" style="vertical-align: middle; margin-right: 4px;">全選択
+            </label>
+        </div>
         <div id="label-legend-container"></div>
         
     </div>
@@ -731,7 +736,7 @@
     const eventModal = document.getElementById('event-modal');
     const modalContent = document.getElementById('modal-content');
     const legendContainer = document.getElementById('label-legend-container');
-    
+    const typeSelectAllCheckbox = document.getElementById('type-select-all-checkbox');
     const topButton = document.getElementById('back-to-top');
     if(topButton) {
         topButton.addEventListener('click', () => {
@@ -1532,7 +1537,33 @@
             }
             
             filteredEvents = ALL_BEYBLADE_EVENTS;
+            
+            if(typeSelectAllCheckbox) {
+                typeSelectAllCheckbox.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    
+                    if (isChecked) {
+                        activeEventTypes = EVENT_TYPES_LEGEND.map(item => item.key);
+                    } else {
 
+                        activeEventTypes = [];
+                    }
+
+
+                    const buttons = legendContainer.querySelectorAll('.legend-item');
+                    buttons.forEach(btn => {
+                        if (isChecked) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+
+                    saveSearchState();
+                    handleSearch();
+                });
+            }
+            
             populatePrefectureSelect();
             populateLegendButtons(); 
             
@@ -1567,11 +1598,35 @@
             legendItem.addEventListener('click', () => {
                 legendItem.classList.toggle('active');
                 toggleEventType(item.key);
+                
+                updateSelectAllCheckboxState();
+                
                 handleSearch(); 
             });
 
             legendContainer.appendChild(legendItem);
         });
+
+        updateSelectAllCheckboxState();
+    }
+
+    function updateSelectAllCheckboxState() {
+        if(!typeSelectAllCheckbox) return;
+        
+        const allKeys = EVENT_TYPES_LEGEND.map(item => item.key);
+        const selectedCount = activeEventTypes.length;
+        const totalCount = allKeys.length;
+
+        if (selectedCount === 0) {
+            typeSelectAllCheckbox.checked = false;
+            typeSelectAllCheckbox.indeterminate = false;
+        } else if (selectedCount === totalCount) {
+            typeSelectAllCheckbox.checked = true;
+            typeSelectAllCheckbox.indeterminate = false;
+        } else {
+            typeSelectAllCheckbox.checked = false; 
+            typeSelectAllCheckbox.indeterminate = true;
+        }
     }
 
     function toggleEventType(key) {
