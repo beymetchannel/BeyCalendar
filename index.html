@@ -206,6 +206,12 @@
         .label-green { background-color: #FAF871; color: #505050; }
         .label-meetup { background-color: #A0FA8D; color: #505050; }
 
+        .fav-star {
+            font-size: 10px;
+            margin-left: 0px;
+            padding-left: 0px;
+        }
+
         .pref-label {
             display: inline-block;
             padding: 4px 8px;
@@ -640,13 +646,126 @@
             padding: 0;
         }
 
+        .fav-btn {
+            cursor: pointer;
+            color: #ccc;
+            font-size: 24px;
+            line-height: 1;
+            user-select: none;
+            transition: color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fav-btn:active {
+            transform: scale(1.2);
+        }
+
+        .fav-btn.active {
+            color: #FFD700;
+            text-shadow: 0 0 2px rgba(255, 215, 0, 0.5);
+        }
+
+        .modal-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+
+        .event-fav-col {
+            flex: 0 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #status-bar-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 5px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0px;
+        }
+
+        #filter-status {
+            color: #505050;
+            font-size: 10px;
+            text-align: left;
+            margin-left: 16px;
+            flex-grow: 1;
+        }
+
+        .fav-filter-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+            margin-left: 2px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .2s;
+            border-radius: 12.5px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "★";
+            height: 20px;
+            width: 20px;
+            left: 2.5px;
+            bottom: 2.5px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+            color: #cccccc;
+            font-size: 12px;
+            text-align: center;
+            line-height: 20px;
+            font-weight: bold;
+        }
+
+        input:checked + .slider {
+            background-color: #FFD700;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+            color: #FFD700;
+        }
+
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.5.5</label>
+        <label id="version-label">version: β.6.0</label>
     </div>
         
     <div class="search-container">
@@ -657,7 +776,7 @@
         </div>
         
         <div class="keyword-search-group" style="margin-top: 10px;color: #505050;">
-            <label for="city-input">キーワード検索</label>
+            <label for="city-input">フリーワード検索</label>
             <div class="keyword-search-input-wrapper">
                 <input type="text" id="city-input" placeholder="市町村名やイベント名など">
                 <button id="search-button" class="search-button-icon">🔍</button>
@@ -673,11 +792,26 @@
         
     </div>
 
-    <div id="filter-status" style="color: #505050;font-size:10px;text-align: center;margin-top: 5px;"></div>
+
+
+    <div id="status-bar-container">
+        <div id="filter-status"></div>
+        <div class="fav-filter-wrapper">
+            <label class="toggle-switch">
+                <input type="checkbox" id="fav-filter-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div>
 
     <div class="calendar-container">
         <div id="calendar-wrapper">
             </div>
+    </div>
+
+    <div class="page-footer" style="font-size: 9px;color: #808080; text-align: center;line-height: 1.0;margin-top: 15px;">
+        <p>Source:<a href="https://beyblade.takaratomy.co.jp/beyblade-x/event/schedule.html" target="_blank" style="color: #505050;">https://beyblade.takaratomy.co.jp</a></p>
+        <p>Developed by <a href="https://youtube.com/channel/UCMwImb7TTdSbQsLz_gyHr4w/" target="_blank" style="color: #505050;">BeyMet</a>.</p>
     </div>
 
     <div id="event-modal" style="display: none;">
@@ -752,6 +886,74 @@
             window.scrollTo({
                 top: 0,
             });
+        });
+    }
+
+    let favoriteEventIds = new Set();
+    const FAV_STORAGE_KEY = 'beyCalendarFavorites';
+
+    function generateEventId(event) {
+        return `${event.dateString}_${event.name}_${event.time}_${event.location || ''}`;
+    }
+
+    function loadFavorites() {
+        const saved = localStorage.getItem(FAV_STORAGE_KEY);
+        if (saved) {
+            try {
+                const ids = JSON.parse(saved);
+                favoriteEventIds = new Set(ids);
+            } catch (e) {
+                console.error('Failed to parse favorites:', e);
+            }
+        }
+    }
+
+    function saveFavorites() {
+        localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify([...favoriteEventIds]));
+    }
+
+    function toggleFavorite(event, btnElement) {
+        const id = generateEventId(event);
+        const isFavFilterActive = document.getElementById('fav-filter-toggle')?.checked;
+
+        if (favoriteEventIds.has(id)) {
+            favoriteEventIds.delete(id);
+            btnElement.classList.remove('active');
+
+            if (isFavFilterActive) {
+                saveFavorites();
+                handleSearch(); 
+                return; 
+            }
+
+            updateCalendarStar(id, false);
+
+        } else {
+            favoriteEventIds.add(id);
+            btnElement.classList.add('active');
+            
+            updateCalendarStar(id, true);
+        }
+        saveFavorites();
+    }
+
+    function updateCalendarStar(eventId, isFav) {
+        const labels = document.querySelectorAll(`.event-label[data-event-id="${eventId}"]`);
+        
+        labels.forEach(label => {
+            const starSpan = label.querySelector('.fav-star');
+            if (isFav) {
+                if (!starSpan) {
+                    const newStar = document.createElement('span');
+                    newStar.classList.add('fav-star');
+                    newStar.textContent = '★';
+                    label.appendChild(newStar);
+                }
+            } else {
+                if (starSpan) {
+                    starSpan.remove();
+                }
+            }
         });
     }
 
@@ -1100,10 +1302,14 @@
         newContentWrapper.style.padding = '20px';
         newContentWrapper.style.maxHeight = '90vh';
         newContentWrapper.style.overflowY = 'auto';
-
+        const eventId = generateEventId(event);
+        const isFav = favoriteEventIds.has(eventId);
         newContentWrapper.innerHTML = `
             
-            <div class="event-type-badge ${badgeClass}" style="margin-bottom: 5px;">${eventTypeText}</div>
+            <div class="modal-header-row">
+                <div class="event-type-badge ${badgeClass}">${eventTypeText}</div>
+                <div class="fav-btn ${isFav ? 'active' : ''}" id="detail-fav-btn">★</div>
+            </div>
             <h3>${eventName}</h3>
             
             <p>
@@ -1128,6 +1334,14 @@
         modalContent.innerHTML = '';
         modalContent.style.padding = '0'; 
         modalContent.appendChild(newContentWrapper);
+
+        const favBtn = newContentWrapper.querySelector('#detail-fav-btn');
+        if(favBtn) {
+            favBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                toggleFavorite(event, favBtn);
+            });
+        }
 
         setupSwipe(modalContent, showPrevEvent, showNextEvent);
     }
@@ -1284,7 +1498,9 @@
                 const card = document.createElement('div');
                 card.classList.add('event-card');
                 
-                card.onclick = () => {
+                card.onclick = (e) => {
+                    if (e.target.closest('.fav-btn')) return;
+
                     const listModalContent = card.closest('.event-list-modal-content');
                     if (listModalContent) {
                         savedScrollPosition = listModalContent.scrollTop;
@@ -1336,6 +1552,24 @@
                 detailsCol.appendChild(address);
 
                 card.appendChild(detailsCol);
+                const favCol = document.createElement('div');
+                favCol.classList.add('event-fav-col');
+                
+                const eventId = generateEventId(event);
+                const isFav = favoriteEventIds.has(eventId);
+                
+                const favBtn = document.createElement('div');
+                favBtn.classList.add('fav-btn');
+                if (isFav) favBtn.classList.add('active');
+                favBtn.textContent = '★';
+                
+                favBtn.onclick = (e) => {
+                    e.stopPropagation(); 
+                    toggleFavorite(event, favBtn);
+                };
+
+                favCol.appendChild(favBtn);
+                card.appendChild(favCol);
                 listContainer.appendChild(card);
             });
             
@@ -1491,6 +1725,7 @@
     
     async function loadDataAndInitialize() {
         loadSearchState();
+        loadFavorites();
 
         try {
             const jsonPromise = fetch('./events.json')
@@ -1873,8 +2108,12 @@
                     
                     const timeParts = (event.time || '').split('：');
                     const displayTime = timeParts.length === 2 ? `${timeParts[0]}:${timeParts[1]}` : event.time;
-
-                    eventLabel.textContent = `${displayTime} ${label}`;
+                    const eventId = generateEventId(event);
+                    const isFav = favoriteEventIds.has(eventId);
+                    const starHtml = isFav ? '<span class="fav-star">★</span>' : '';
+                    
+                    eventLabel.innerHTML = `${displayTime}${label}${starHtml}`;
+                    eventLabel.dataset.eventId = eventId;
                     
                     eventLabel.onclick = (e) => {
                         e.stopPropagation(); 
@@ -1993,6 +2232,14 @@
             }
         }
         
+        const favToggle = document.getElementById('fav-filter-toggle');
+        if (favToggle && favToggle.checked) {
+            localFilteredEvents = localFilteredEvents.filter(event => {
+                const eventId = generateEventId(event);
+                return favoriteEventIds.has(eventId);
+            });
+            filterDescription.push('お気に入り');
+        }
 
         localFilteredEvents.sort((a, b) => {
             if (a.dateString !== b.dateString) {
@@ -2042,6 +2289,13 @@
             handleSearch();
         }
     });
+
+    const favFilterToggle = document.getElementById('fav-filter-toggle');
+    if (favFilterToggle) {
+        favFilterToggle.addEventListener('change', () => {
+            handleSearch();
+        });
+    }
 
     loadDataAndInitialize();
 
