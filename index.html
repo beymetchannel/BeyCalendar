@@ -758,6 +758,16 @@
             color: #FFD700;
         }
 
+        
+        .type-Product { 
+            background-color: #a0a0a0; 
+            color: #ffffff; 
+        }
+        
+        .label-product { 
+            background-color: #a0a0a0 !important; 
+            color: #ffffff !important;           
+        }
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -765,7 +775,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.6.0</label>
+        <label id="version-label">version: β.6.1</label>
     </div>
         
     <div class="search-container">
@@ -921,6 +931,7 @@
             btnElement.classList.remove('active');
 
             if (isFavFilterActive) {
+                if (event.type === 'ProductRelease') return true;
                 saveFavorites();
                 handleSearch(); 
                 return; 
@@ -1192,6 +1203,9 @@
     function getColorClass(eventType) {
         if (!eventType) return { class: 'label-green', label: '' }; 
         
+        if (eventType === 'ProductRelease') {
+            return { class: 'label-product', label: '' };
+        }
         if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
             return { class: 'label-yellow', label: '' };
         } else if (eventType.includes("G3大会/チーム戦（G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
@@ -1215,6 +1229,7 @@
 
     function getBadgeClass(eventType) {
         const { class: colorClass } = getColorClass(eventType);
+        if(colorClass === 'label-product') return 'type-Product';
         if(colorClass === 'label-black') return 'type-G1';
         if(colorClass === 'label-gray') return 'type-G2';
         if(colorClass === 'label-orange') return 'type-G3O';
@@ -1226,6 +1241,7 @@
     
     function cleanEventTypeText(eventType) {
         if (!eventType) return '';
+        if (eventType === 'ProductRelease') return '情報';
         return eventType.replace('B4ストアカップ', '').trim();
     }
 
@@ -1255,17 +1271,18 @@
         }
 
         const locationHtml = event.location ? `<p><strong>会場:</strong> ${event.location}</p>` : '';
-
         const address = event.address || '';
-        const mapLink = address ? `href="http://maps.google.com/?q=${encodeURIComponent(address)}"` : ''; 
-        const addressText = address ? `<a ${mapLink} target="_blank" rel="noopener noreferrer">${address}</a>` : '';
         
-        const addressHtml = `<p><strong>住所:</strong> ${addressText}</p>`;
-        
+        const addressHtml = address 
+            ? `<p><strong>住所:</strong> <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" rel="noopener noreferrer">${address}</a></p>`
+            : '';
+            
+        const eventName = event.name.replace('B4G2_','');        
+       
         const tel = event.tel || '';
         const telDisplay = tel.replace(/\n/g, '<br>');
         const telLink = tel.replace(/[^\d+]/g, ''); 
-        const eventName = event.name.replace('B4G2_','');
+
         
         const telHtml = tel ? 
             `<p><strong>電話:</strong> <a href="tel:${telLink}">${telDisplay}</a></p>` : 
@@ -1363,6 +1380,13 @@
             if (a.dateString !== b.dateString) {
                 return new Date(a.dateString) - new Date(b.dateString);
             }
+
+            const isProductA = a.type === 'ProductRelease';
+            const isProductB = b.type === 'ProductRelease';
+
+            if (isProductA && !isProductB) { return -1; }
+            if (!isProductA && isProductB) { return 1; }
+            
             return getTimeValue(a.time) - getTimeValue(b.time);
         });
         
@@ -1421,7 +1445,14 @@
                 event.dateString === returnToDayDate
             );
             
-            eventsForDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
+            eventsForDay.sort((a, b) => {
+                const isProductA = a.type === 'ProductRelease';
+                const isProductB = b.type === 'ProductRelease';
+                if (isProductA && !isProductB) return -1;
+                 if (!isProductA && isProductB) return 1;
+
+                return getTimeValue(a.time) - getTimeValue(b.time);
+            });
             
             createDayEventModal(returnToDayDate, eventsForDay);
             returnToDayDate = null; 
@@ -1513,7 +1544,7 @@
                 const timeCol = document.createElement('div');
                 timeCol.classList.add('event-time-col');
                 
-                let timeText = event.time || '未定';
+                let timeText = event.time || '';
                 const timeMatch = timeText.match(/\d{1,2}[:：]\d{2}/);
                 if (timeMatch) {
                     timeText = timeMatch[0].replace('：', ':'); 
@@ -1702,6 +1733,7 @@
             
             return filteredData.map(evt => ({
                 name: evt.name,
+                calendarText: item.label,
                 date: formatDate(evt.date), 
                 time: formatTime(evt.time),
                 location: evt.location,
@@ -1723,6 +1755,39 @@
         }
     }
     
+
+    async function fetchProductEvents() {
+        try {
+            const { data, error } = await supabase
+                .from('ProductDB')
+                .select('*'); 
+            if (error) {
+                console.error('Supabase ProductDB fetch error:', error);
+                return [];
+            }
+
+            return data.map(item => ({
+                name: item.name, 
+                date: formatDate(item.date),
+                time: item.time || '', 
+                type: 'ProductRelease',
+                calendarText: item.label,
+                details: item.details || '', 
+                location: '', 
+                address: '',
+                fee: '',
+                capacity: '',
+                entry: '',
+                owner: ''
+            })).filter(item => item !== null);
+        } catch (err) {
+            console.error('ProductDB connection failed:', err);
+            return [];
+        }
+    }
+
+
+
     async function loadDataAndInitialize() {
         loadSearchState();
         loadFavorites();
@@ -1738,13 +1803,13 @@
                     return [];
                 });
 
-            const [jsonEvents, supabaseEvents] = await Promise.all([
+            const [jsonEvents, supabaseEvents, productEvents] = await Promise.all([
                 jsonPromise,
-                fetchSupabaseEvents()
+                fetchSupabaseEvents(),
+                fetchProductEvents()
             ]);
             
-
-            const combinedEvents = [...jsonEvents, ...supabaseEvents];
+            const combinedEvents = [...jsonEvents, ...supabaseEvents, ...productEvents];
             
             ALL_BEYBLADE_EVENTS = combinedEvents
                 .map(event => cleanEventStrings(event))
@@ -2092,22 +2157,38 @@
                     const pd = event.parsedDate;
                     return pd && pd.year === currentYear && pd.month === currentMonth && pd.day === day;
                 });
+
                 
                 if (dailyEvents.length > 0) {
                     dayNumber.classList.add('has-events');
                 }
 
                 dayCell.appendChild(dayNumber);
-                
-                dailyEvents.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
+
+                dailyEvents.sort((a, b) => {
+                    if (a.type === 'ProductRelease' && b.type !== 'ProductRelease') {
+                        return -1; 
+                    }
+                    if (a.type !== 'ProductRelease' && b.type === 'ProductRelease') {
+                        return 1;  
+                    }
+                    return getTimeValue(a.time) - getTimeValue(b.time); 
+                });
 
                 dailyEvents.forEach(event => {
-                    const { class: colorClass, label } = getColorClass(event.type);
+                    let { class: colorClass, label } = getColorClass(event.type);
+                    
+                    if (event.type === 'ProductRelease') {
+                        label = event.calendarText || event.name;
+                    }
                     const eventLabel = document.createElement('span');
                     eventLabel.classList.add('event-label', colorClass);
                     
                     const timeParts = (event.time || '').split('：');
-                    const displayTime = timeParts.length === 2 ? `${timeParts[0]}:${timeParts[1]}` : event.time;
+                    let displayTime = timeParts.length === 2 ? `${timeParts[0]}:${timeParts[1]}` : event.time;
+                    if (event.type === 'ProductRelease') {
+                        displayTime = '';
+                    }
                     const eventId = generateEventId(event);
                     const isFav = favoriteEventIds.has(eventId);
                     const starHtml = isFav ? '<span class="fav-star">★</span>' : '';
@@ -2186,6 +2267,7 @@
 
         if (selectedPrefectures.length > 0) {
             localFilteredEvents = localFilteredEvents.filter(event => {
+                if (event.type === 'ProductRelease') return true;
                 const eventAddress = event.address || '';
                 return selectedPrefectures.some(pref => eventAddress.startsWith(pref)); 
             });
@@ -2194,6 +2276,7 @@
 
         if (citySearchText !== "") {
             localFilteredEvents = localFilteredEvents.filter(event => {
+                if (event.type === 'ProductRelease') return true;
                 const searchTarget = [
                     event.address || '', 
                     event.location || '',
@@ -2215,6 +2298,8 @@
             const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
             
             localFilteredEvents = localFilteredEvents.filter(event => {
+                if (event.type === 'ProductRelease') return true;
+
                 const eventType = event.type || ''; 
                 
                 const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
@@ -2235,6 +2320,7 @@
         const favToggle = document.getElementById('fav-filter-toggle');
         if (favToggle && favToggle.checked) {
             localFilteredEvents = localFilteredEvents.filter(event => {
+                if (event.type === 'ProductRelease') return true;
                 const eventId = generateEventId(event);
                 return favoriteEventIds.has(eventId);
             });
@@ -2278,7 +2364,15 @@
             event.dateString === dateString
         );
         
-        eventsForDay.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
+        eventsForDay.sort((a, b) => {
+            const isProductA = a.type === 'ProductRelease';
+            const isProductB = b.type === 'ProductRelease';
+
+            if (isProductA && !isProductB) return -1;
+            if (!isProductA && isProductB) return 1;
+
+            return getTimeValue(a.time) - getTimeValue(b.time);
+        });
 
         createDayEventModal(dateString, eventsForDay);
     }
@@ -2302,4 +2396,3 @@
 </script>
 </body>
 </html>
-
