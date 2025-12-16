@@ -775,7 +775,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.6.1</label>
+        <label id="version-label">version: β.6.2</label>
     </div>
         
     <div class="search-container">
@@ -855,8 +855,8 @@
         { key: 'G2', label: 'G2', styleClass: 'style-G2', searchKeywords: ['G2大会'] },
         { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'G3大会/チーム戦（オープン'] },
         { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'G3大会/チーム戦（レギュラー'] },
-        { key: 'S1AMB', label: 'S1,AMB', styleClass: 'style-S1AMB', searchKeywords: ['S1イベント', 'アンバサダーイベント'] },
-        { key: 'Meetup', label: '交流会', styleClass: 'style-Meetup', searchKeywords: ['交流会'] }, 
+        { key: 'S1AMB', label: 'S1,AMB', styleClass: 'style-S1AMB', searchKeywords: ['S1イベント', 'アンバサダーイベント', 'S1≪予定≫'] },
+        { key: 'Meetup', label: '交流会', styleClass: 'style-Meetup', searchKeywords: ['交流会', '非公式大会'] }, 
         { key: 'Other', label: 'その他', styleClass: 'style-Other', searchKeywords: [] }
     ];
 
@@ -1214,9 +1214,9 @@
             return { class: 'label-orange', label: '' };
         } else if (eventType.includes("G3大会/チーム戦（オープン") || eventType.includes("オープンクラス")) {
             return { class: 'label-orange', label: '' };
-        } else if (eventType.includes("S1イベント") || eventType.includes("アンバサダーイベント")) {
+        } else if (eventType.includes("S1イベント") || eventType.includes("アンバサダーイベント") || eventType.includes("S1≪予定≫")) {
             return { class: 'label-lightblue', label: '' };
-        } else if (eventType.includes("交流会")) { 
+        } else if (eventType.includes("交流会") || eventType.includes("非公式大会")) { 
             return { class: 'label-meetup', label: '' };
         } else if (eventType.includes("G2大会")) {
             return { class: 'label-gray', label: '' };
