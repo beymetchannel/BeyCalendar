@@ -769,13 +769,27 @@
             color: #ffffff !important;           
         }
 
+        .detail-link-button {
+            display: block; 
+            width: 100%; 
+            height: 28px;
+            font-size: 12px;
+            margin: 5px 0; 
+            padding: 5px;
+            background-color: #B3FF52; 
+            color: #222222; 
+            text-decoration: none; 
+            border-radius: 15px;
+            text-align: center;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.6.2</label>
+        <label id="version-label">version: β.6.3</label>
     </div>
         
     <div class="search-container">
@@ -1303,16 +1317,20 @@
         if (owner && ownerFlg) {
             const xUrl = `https://x.com/${owner}`;
             ownerHtml = `
-                <p>
+                <p style="border-bottom:none;">
                     <strong>運営:</strong> <a href="${xUrl}" target="_blank" rel="noopener noreferrer">${owner}</a>
                 </p>
             `;
         }
 
-        const detailsHtml = `<p><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
+        const detailsHtml = `<p style="border:none ;"><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
         
+        const linkHtml = event.link ? 
+            `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="detail-link-button" style="text-decoration: none;">公式ページはこちら</a>` 
+            : '';
+
         const navIndicator = eventList.length > 1 ? 
-            `<div style="font-size: 12px; text-align: center; color: #808080; margin-bottom: 0px;">( ${currentEventIndex + 1} / ${eventList.length} イベント )</div>` 
+            `<div style="font-size: 12px; text-align: center; color: #808080; padding-top: 8px; border-top: 1px solid #cccccc;">( ${currentEventIndex + 1} / ${eventList.length} イベント )</div>` 
             : '';
 
         const newContentWrapper = document.createElement('div');
@@ -1339,6 +1357,7 @@
             ${telHtml}
             ${eligibilityEntryHtml}
             ${detailsHtml}
+            ${linkHtml}
             ${ownerHtml}
             ${navIndicator} `;
         
@@ -1745,6 +1764,7 @@
                 detailTitle: evt.detailTitle,
                 details: evt.details,
                 tel: evt.tel,
+                link: evt.link,
                 owner: evt.owner,
                 ownerFlg: evt.ownerFlg
             }));
@@ -2241,12 +2261,12 @@
         
         saveSearchState();
 
-        if (activeEventTypes.length === 0) {
-            filteredEvents = [];
-            filterStatus.textContent = "表示するイベントを選択してください。";
-            generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
-            return;
-        }
+        // if (activeEventTypes.length === 0) {
+        //     filteredEvents = [];
+        //     filterStatus.textContent = "表示するイベントを選択してください。";
+        //     generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+        //     return;
+        // }
 
         if (ALL_BEYBLADE_EVENTS.length === 0) {
             filterStatus.textContent = "イベントデータがありません。";
@@ -2288,33 +2308,34 @@
             filterDescription.push(`キーワード: "${citySearchText}"`);
         }
         
-        if (activeEventTypes.length > 0) {
-            const allowedKeywords = activeEventTypes.flatMap(key => 
-                EVENT_TYPES_LEGEND.find(item => item.key === key)?.searchKeywords || []
-            );
-            
-            const includeOther = activeEventTypes.includes('Other');
-            const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
-            
-            localFilteredEvents = localFilteredEvents.filter(event => {
-                if (event.type === 'ProductRelease') return true;
+        const allowedKeywords = activeEventTypes.flatMap(key => 
+            EVENT_TYPES_LEGEND.find(item => item.key === key)?.searchKeywords || []
+        );
+        
+        const includeOther = activeEventTypes.includes('Other');
+        const otherTypesKeywords = EVENT_TYPES_LEGEND.filter(item => item.key !== 'Other').flatMap(item => item.searchKeywords);
+        
+        localFilteredEvents = localFilteredEvents.filter(event => {
+            if (event.type === 'ProductRelease') return true;
 
-                const eventType = event.type || ''; 
-                
-                const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
-                
-                if (includeOther) {
-                    const isOther = !otherTypesKeywords.some(keyword => eventType.includes(keyword));
-                    return isMatch || isOther;
-                }
-                
-                return isMatch;
-            });
+            if (activeEventTypes.length === 0) return false;
+
+            const eventType = event.type || ''; 
             
-            if (activeEventTypes.length < EVENT_TYPES_LEGEND.length) {
-                filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key)?.label || '').join('、')}`);
+            const isMatch = allowedKeywords.some(keyword => eventType.includes(keyword));
+            
+            if (includeOther) {
+                const isOther = !otherTypesKeywords.some(keyword => eventType.includes(keyword));
+                return isMatch || isOther;
             }
+            
+            return isMatch;
+        });
+
+        if (activeEventTypes.length < EVENT_TYPES_LEGEND.length && activeEventTypes.length > 0) {
+            filterDescription.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key)?.label || '').join('、')}`);
         }
+
         
         const favToggle = document.getElementById('fav-filter-toggle');
         if (favToggle && favToggle.checked) {
@@ -2395,4 +2416,3 @@
 </script>
 </body>
 </html>
-
