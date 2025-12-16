@@ -15,6 +15,7 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 IFRAME_URL = "https://beyblade.takaratomy.co.jp/beyblade-x/shop_event/manage_jpnew/open_list_all.html"
 OUTPUT_JSON_FILENAME = "events.json"
 TABLE_SELECTOR = "table.event_list"
+LINK_SELECTOR = "a.btnRoundmini" # 👈 追加: リンク要素のセレクター
 WAIT_TIMEOUT = 30
 # ==========================================================
 
@@ -77,6 +78,17 @@ def fetch_schedule_data(url):
         for i, row in enumerate(rows[1:]):
             row_index = i + 1
             cols = row.find_elements(By.TAG_NAME, 'td')
+
+            # -------------------------------------------------------
+            # 0. Link Extraction (追加)
+            # -------------------------------------------------------
+            link_info = ""
+            try:
+                link_element = row.find_element(By.CSS_SELECTOR, LINK_SELECTOR)
+                link_info = link_element.get_attribute('href')
+            except:
+                # リンク要素が見つからない場合はスキップ（空のまま）
+                pass
 
             if len(cols) != 2:
                 continue
@@ -267,7 +279,8 @@ def fetch_schedule_data(url):
                     "tel": tel_info,            
                     "entry": entry_info,        
                     "detailTitle": detail_title_info, 
-                    "details": location_details
+                    "details": location_details,
+                    "link": link_info           # 👈 追加: リンク情報
                 })
 
             except Exception as row_e:
