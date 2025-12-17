@@ -331,6 +331,9 @@
           animation: fadeIn 0.3s;
           position: relative;
           overflow: hidden;
+          overscroll-behavior: contain;
+          overflow-y: auto; 
+          -webkit-overflow-scrolling: touch;
       }
 
         #modal-content h3 {
@@ -460,6 +463,9 @@
             overflow-y: auto; 
             overflow-x: hidden; 
             animation: fadeIn 0.3s;
+            overscroll-behavior: contain;
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
         }
 
         .swipe-guide-overlay {
@@ -789,7 +795,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.6.4</label>
+        <label id="version-label">version: β.6.6</label>
     </div>
         
     <div class="search-container">
@@ -1327,7 +1333,18 @@
         
         const linkLabel = (badgeClass === 'type-S1') ? '詳細はこちら' : '公式ページはこちら';
 
-        const linkHtml = event.link ? `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="detail-link-button" style="text-decoration: none;">${linkLabel}</a>` : '';
+        let linkHtml = '';
+        if (event.link) {
+            let buttonLabel = '公式ページはこちら';
+            
+            if (event.type === 'ProductRelease') {
+                buttonLabel = '公式ページはこちら';
+            } else {
+                buttonLabel = 'エントリーはこちら';
+            }
+
+            linkHtml = `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="detail-link-button" style="text-decoration: none;">${buttonLabel}</a>`;
+        }
 
         const navIndicator = `<div style="font-size: 12px; text-align: center; color: #808080; padding-top: 8px; border-top: 1px solid #cccccc;">( ${currentEventIndex + 1} / ${eventList.length} イベント )</div>`;
 
@@ -1643,17 +1660,27 @@
 
         const overlay = document.createElement('div');
         overlay.classList.add('event-list-modal-overlay');
+        overlay.addEventListener('touchmove', function(e) {
+            if (e.target === overlay) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
         const closeButton = document.createElement('button');
         closeButton.classList.add('fixed-close-btn');
         closeButton.innerHTML = '×';
         
         closeButton.onclick = () => {
-            overlay.remove();
-            document.body.style.overflow = '';
-            if(topButton) topButton.style.display = 'block';
+            if (isReturningFromDetail) {
+                // リストに戻るだけなら body のロック（overflow:hidden等）は解除しない！
+                showDayEventList(savedDate); 
+            } else {
+                // 完全に閉じるときだけ解除
+                document.body.style.overflow = '';
+                overlay.remove();
+            }        
         };
-        
+    
         overlay.appendChild(closeButton);
 
         const content = document.createElement('div');
@@ -1807,7 +1834,8 @@
                 fee: '',
                 capacity: '',
                 entry: '',
-                owner: ''
+                owner: '',
+                link:''
             })).filter(item => item !== null);
         } catch (err) {
             console.error('ProductDB connection failed:', err);
