@@ -1315,36 +1315,17 @@
                 <strong>受付:</strong> ${eligibilityContent || '-'} ${entryDisplay}
             </p>
         ` : '';
-        
-        const owner = event.owner || '';
-        const ownerFlg = event.ownerFlg;
-        let ownerHtml = '';
-
-        if (owner && ownerFlg) {
-            const xUrl = `https://x.com/${owner}`;
-            ownerHtml = `
-                <p style="border-bottom:none;">
-                    <strong>運営:</strong> <a href="${xUrl}" target="_blank" rel="noopener noreferrer">${owner}</a>
-                </p>
-            `;
-        }
 
         const detailsHtml = `<p style="border:none ;"><strong>${event.detailTitle || '詳細'}:</strong> <br>${detailsContent || ''}</p>`;
         
-        const linkLabel = (badgeClass === 'type-S1') ? '詳細はこちら' : '公式ページはこちら';
-
-        let linkHtml = '';
-        if (event.link) {
-            let buttonLabel = '公式ページはこちら';
-            
-            if (event.type === 'ProductRelease') {
-                buttonLabel = '公式ページはこちら';
-            } else {
-                buttonLabel = 'エントリーはこちら';
-            }
-
-            linkHtml = `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="detail-link-button" style="text-decoration: none;">${buttonLabel}</a>`;
+        let linkLabel = '公式ページはこちら';
+        if (badgeClass === 'type-S1') {
+            linkLabel = '詳細はこちら';
+        } else if (badgeClass === 'type-Meetup') {
+            linkLabel = 'エントリーはこちら';
         }
+
+        const linkHtml = event.link ? `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="detail-link-button" style="text-decoration: none;">${linkLabel}</a>` : '';
 
         const navIndicator = `<div style="font-size: 12px; text-align: center; color: #808080; padding-top: 8px; border-top: 1px solid #cccccc;">( ${currentEventIndex + 1} / ${eventList.length} イベント )</div>`;
 
@@ -1373,7 +1354,6 @@
             ${eligibilityEntryHtml}
             ${detailsHtml}
             ${linkHtml}
-            ${ownerHtml}
             ${navIndicator} `;
         
         if (direction === 'next') {
@@ -1802,8 +1782,6 @@
                 details: evt.details,
                 tel: evt.tel,
                 link: evt.link,
-                owner: evt.owner,
-                ownerFlg: evt.ownerFlg
             }));
         } catch (err) {
             console.error('Supabase connection failed:', err);
@@ -1834,8 +1812,7 @@
                 fee: '',
                 capacity: '',
                 entry: '',
-                owner: '',
-                link:''
+                link: item.link || ''
             })).filter(item => item !== null);
         } catch (err) {
             console.error('ProductDB connection failed:', err);
@@ -2470,3 +2447,4 @@
 </script>
 </body>
 </html>
+
