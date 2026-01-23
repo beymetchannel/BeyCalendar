@@ -795,7 +795,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.6.8</label>
+        <label id="version-label">version: β.7.0</label>
     </div>
         
     <div class="search-container">
@@ -2131,6 +2131,63 @@
         });
     }
 
+function isJapaneseHoliday(year, month, day) {
+        const date = new Date(year, month - 1, day);
+        const w = date.getDay();
+
+        // 国民の祝日の基本判定
+        const checkNationalHoliday = (y, m, d) => {
+            const dt = new Date(y, m - 1, d);
+            const ww = dt.getDay();
+            
+            // 固定祝日
+            if (m === 1 && d === 1) return true;   // 元日
+            if (m === 2 && d === 11) return true;  // 建国記念の日
+            if (m === 2 && d === 23) return true;  // 天皇誕生日
+            if (m === 4 && d === 29) return true;  // 昭和の日
+            if (m === 5 && d === 3) return true;   // 憲法記念日
+            if (m === 5 && d === 4) return true;   // みどりの日
+            if (m === 5 && d === 5) return true;   // こどもの日
+            if (m === 8 && d === 11) return true;  // 山の日
+            if (m === 11 && d === 3) return true;  // 文化の日
+            if (m === 11 && d === 23) return true; // 勤労感謝の日
+
+            // ハッピーマンデー (第2月曜: 1, 10月 / 第3月曜: 7, 9月)
+            const nth = Math.ceil(d / 7);
+            if (ww === 1) {
+                if (m === 1 && nth === 2) return true;  // 成人の日
+                if (m === 7 && nth === 3) return true;  // 海の日
+                if (m === 9 && nth === 3) return true;  // 敬老の日
+                if (m === 10 && nth === 2) return true; // スポーツの日
+            }
+
+            // 春分の日・秋分の日 (簡易計算式: 1980-2099年対応)
+            if (m === 3 && d === Math.floor(20.8431 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return true;
+            if (m === 9 && d === Math.floor(23.2488 + 0.242154 * (y - 1980) - Math.floor((y - 1980) / 4))) return true;
+
+            return false;
+        };
+
+        if (checkNationalHoliday(year, month, day)) return true;
+
+        let tempDate = new Date(year, month - 1, day - 1);
+        while (checkNationalHoliday(tempDate.getFullYear(), tempDate.getMonth() + 1, tempDate.getDate())) {
+            if (tempDate.getDay() === 0) return true; 
+            tempDate.setDate(tempDate.getDate() - 1);
+        }
+
+        const prev = new Date(year, month - 1, day - 1);
+        const next = new Date(year, month - 1, day + 1);
+        if (w !== 0 && checkNationalHoliday(prev.getFullYear(), prev.getMonth() + 1, prev.getDate()) && 
+            checkNationalHoliday(next.getFullYear(), next.getMonth() + 1, next.getDate())) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+
     function generateCalendar(events, startYear, startMonth, maxDate) {
         calendarWrapper.innerHTML = ''; 
         
@@ -2185,9 +2242,15 @@
 
                 const dayNumber = document.createElement('span');
                 dayNumber.classList.add('day-number');
-                
                 dayNumber.textContent = `${currentMonth}/${day}`;
                 
+
+                const isHoliday = isJapaneseHoliday(currentYear, currentMonth, day);
+                if (isHoliday) {
+                    dayCell.style.backgroundColor = '#f4f4f4'; 
+                    dayNumber.style.color = '#cc5588';
+                }
+
                 const dateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 dayNumber.dataset.date = dateString;
 
