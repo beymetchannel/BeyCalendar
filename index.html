@@ -795,7 +795,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.8.3</label>
+        <label id="version-label">version: β.8.5</label>
     </div>
         
     <div class="search-container">
@@ -904,6 +904,9 @@
 
     let savedScrollPosition = 0;
     let isReturningFromDetail = false;
+
+    let isEventProcessing = false;
+    let detailExitScrollTarget = null;
     
     const searchButton = document.getElementById('search-button');
     const prefectureContainer = document.getElementById('prefecture-checkbox-container');
@@ -1429,6 +1432,44 @@
         
         eventModal.appendChild(closeButton);
 
+        if (!eventModal.dataset.hasScrollListener) {
+            
+            eventModal.addEventListener('touchmove', (e) => {
+                if (e.target === eventModal) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            let detailStartY = 0;
+            
+            modalContent.addEventListener('touchstart', (e) => {
+                detailStartY = e.touches[0].pageY;
+            }, { passive: true });
+
+            modalContent.addEventListener('touchmove', (e) => {
+                const moveY = e.touches[0].pageY;
+                const dy = moveY - detailStartY;
+                const scrollTop = modalContent.scrollTop;
+                const scrollHeight = modalContent.scrollHeight;
+                const clientHeight = modalContent.clientHeight;
+
+                if (scrollHeight <= clientHeight) {
+                    e.preventDefault();
+                    return;
+                }
+
+                if (scrollTop <= 0 && dy > 0) {
+                    e.preventDefault();
+                }
+
+                if (scrollTop + clientHeight >= scrollHeight && dy < 0) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            eventModal.dataset.hasScrollListener = 'true';
+        }
+
         eventModal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; 
         
@@ -1438,40 +1479,22 @@
     }
     
 
-
-    let isEventProcessing = false;
-
     function showPrevEvent() {
         if (isEventProcessing) return;
         isEventProcessing = true;
 
         if (currentEventIndex > 0) {
-            currentEventIndex--;
-            updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'prev'); 
 
+            currentEventIndex--;
+            updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'prev');
             setTimeout(() => { isEventProcessing = false; }, 300);
         } else {
-            const parts = swipeableEvents[0].dateString.split('-');
-            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            d.setDate(d.getDate() - 1);
-            const targetDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const dateStr = `${d.getMonth() + 1}月${d.getDate()}日(${JAPANESE_WEEKDAYS[d.getDay()]})`;
 
-            if (confirm(`これより前のイベントはありません。\n前日：${dateStr} の\nイベント一覧を表示しますか？`)) {
-                const targetDateEvents = filteredEvents.filter(e => e.dateString === targetDate);
-                
-                targetDateEvents.sort((a, b) => {
-                    const isProductA = a.type === 'ProductRelease';
-                    const isProductB = b.type === 'ProductRelease';
-                    if (isProductA && !isProductB) return -1;
-                    if (!isProductA && isProductB) return 1;
-                    return getTimeValue(a.time) - getTimeValue(b.time);
-                });
+            returnToDayDate = swipeableEvents[0].dateString;
 
-                eventModal.style.display = 'none';
-                createDayEventModal(targetDate, targetDateEvents);
-            }
-
+            detailExitScrollTarget = 'top';
+            
+            closeEventModal();
             setTimeout(() => { isEventProcessing = false; }, 300);
         }
     }
@@ -1481,34 +1504,20 @@
         isEventProcessing = true;
 
         if (currentEventIndex < swipeableEvents.length - 1) {
+
             currentEventIndex++;
-            updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'next'); 
+            updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'next');
             setTimeout(() => { isEventProcessing = false; }, 300);
         } else {
-            const parts = swipeableEvents[0].dateString.split('-');
-            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            d.setDate(d.getDate() + 1);
-            const targetDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const dateStr = `${d.getMonth() + 1}月${d.getDate()}日(${JAPANESE_WEEKDAYS[d.getDay()]})`;
 
-            if (confirm(`これより後のイベントはありません。\n翌日：${dateStr} の\nイベント一覧を表示しますか？`)) {
-                const targetDateEvents = filteredEvents.filter(e => e.dateString === targetDate);
-                    
-                targetDateEvents.sort((a, b) => {
-                    const isProductA = a.type === 'ProductRelease';
-                    const isProductB = b.type === 'ProductRelease';
-                    if (isProductA && !isProductB) return -1;
-                    if (!isProductA && isProductB) return 1;
-                    return getTimeValue(a.time) - getTimeValue(b.time);
-                });
-
-                eventModal.style.display = 'none';
-                createDayEventModal(targetDate, targetDateEvents);
-            }
+            returnToDayDate = swipeableEvents[0].dateString;
+            
+            detailExitScrollTarget = 'bottom';
+            
+            closeEventModal();
             setTimeout(() => { isEventProcessing = false; }, 300);
         }
     }
-
     
     function closeEventModal() {
         eventModal.style.display = 'none';
@@ -1529,18 +1538,19 @@
                 const isProductA = a.type === 'ProductRelease';
                 const isProductB = b.type === 'ProductRelease';
                 if (isProductA && !isProductB) return -1;
-                 if (!isProductA && isProductB) return 1;
-
+                if (!isProductA && isProductB) return 1;
                 return getTimeValue(a.time) - getTimeValue(b.time);
             });
             
             createDayEventModal(returnToDayDate, eventsForDay);
+
             returnToDayDate = null; 
         } else {
             document.body.style.overflow = ''; 
             if(topButton) topButton.style.display = 'block';
         }
     }
+
     window.closeEventModal = closeEventModal;
     
     eventModal.addEventListener('click', (e) => {
@@ -1706,8 +1716,38 @@
 
         const overlay = document.createElement('div');
         overlay.classList.add('event-list-modal-overlay');
-        overlay.addEventListener('touchmove', function(e) {
+
+        const content = document.createElement('div');
+        content.classList.add('event-list-modal-content');
+        overlay.addEventListener('touchmove', (e) => {
             if (e.target === overlay) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let startY = 0;
+        content.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].pageY;
+        }, { passive: true });
+
+        content.addEventListener('touchmove', (e) => {
+            const moveY = e.touches[0].pageY;
+            const dy = moveY - startY; 
+            const scrollTop = content.scrollTop;
+            const scrollHeight = content.scrollHeight;
+            const clientHeight = content.clientHeight;
+            
+            if (scrollHeight <= clientHeight) {
+                e.preventDefault();
+                return;
+            }
+
+
+            if (scrollTop <= 0 && dy > 0) {
+                e.preventDefault();
+            }
+
+            if (scrollTop + clientHeight >= scrollHeight && dy < 0) {
                 e.preventDefault();
             }
         }, { passive: false });
@@ -1718,20 +1758,16 @@
         
         closeButton.onclick = () => {
             if (isReturningFromDetail) {
-                // リストに戻るだけなら body のロック（overflow:hidden等）は解除しない！
                 showDayEventList(savedDate); 
             } else {
-                // 完全に閉じるときだけ解除
                 document.body.style.overflow = '';
                 overlay.remove();
+                if(topButton) topButton.style.display = 'block';
             }        
         };
-    
+
         overlay.appendChild(closeButton);
 
-        const content = document.createElement('div');
-        content.classList.add('event-list-modal-content');
-        
 
         let currentDayIndex = allCalendarDates.indexOf(dateString);
         let currentDateString = dateString;
@@ -1787,24 +1823,30 @@
             }
         });
         
-        
-        
         setTimeout(() => showSwipeGuide(overlay, '左右スワイプで日付移動', 'swipeGuideShown_List'), 100); 
-        
-        
-
 
         document.body.appendChild(overlay);
         document.body.style.overflow = 'hidden';
 
-        const scrollPositionToApply = isReturningFromDetail ? savedScrollPosition : 0;
-        isReturningFromDetail = false;
-
         setTimeout(() => {
-            content.scrollTop = scrollPositionToApply;
+            if (detailExitScrollTarget === 'top') {
+
+                content.scrollTop = 0;
+            } else if (detailExitScrollTarget === 'bottom') {
+
+                content.scrollTop = content.scrollHeight;
+            } else if (isReturningFromDetail) {
+
+                content.scrollTop = savedScrollPosition;
+            } else {
+
+                content.scrollTop = 0;
+            }
+
+            isReturningFromDetail = false;
+            detailExitScrollTarget = null; 
         }, 0);
     }
-
 
     async function fetchSupabaseEvents() {
         const today = new Date();
