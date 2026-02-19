@@ -795,7 +795,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.8.6</label>
+        <label id="version-label">version: β.8.7</label>
     </div>
         
     <div class="search-container">
@@ -1773,7 +1773,14 @@
         let currentDayIndex = allCalendarDates.indexOf(dateString);
         let currentDateString = dateString;
 
+        // 関数（createDayEventModalなど）の最初の方でフラグを定義します
+        let isDayProcessing = false;
+
         function showPrevDay() {
+            // 処理中なら何もしない（重複実行を防止）
+            if (isDayProcessing) return;
+            isDayProcessing = true;
+
             if (currentDayIndex > 0) {
                 currentDayIndex--;
                 const prevDate = allCalendarDates[currentDayIndex];
@@ -1789,9 +1796,16 @@
 
                 updateDayModalContent(content, prevDate, eventsForPrevDay, 'prev'); 
             }
+
+            // 300ミリ秒後にロックを解除（スワイプアニメーションが終わる頃）
+            setTimeout(() => { isDayProcessing = false; }, 300);
         }
 
         function showNextDay() {
+            // 処理中なら何もしない（重複実行を防止）
+            if (isDayProcessing) return;
+            isDayProcessing = true;
+
             if (currentDayIndex < allCalendarDates.length - 1) {
                 currentDayIndex++;
                 const nextDate = allCalendarDates[currentDayIndex];
@@ -1807,6 +1821,9 @@
 
                 updateDayModalContent(content, nextDate, eventsForNextDay, 'next'); 
             }
+
+            // 300ミリ秒後にロックを解除
+            setTimeout(() => { isDayProcessing = false; }, 300);
         }
 
         updateDayModalContent(content, dateString, dayEvents);
