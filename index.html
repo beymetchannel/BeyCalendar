@@ -791,11 +791,12 @@
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.8.7</label>
+        <label id="version-label">version: β.9.0</label>
     </div>
         
     <div class="search-container">
@@ -860,6 +861,20 @@
         'https://yyrsscvofuoufkujetgf.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cnNzY3ZvZnVvdWZrdWpldGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzIxMjksImV4cCI6MjA3OTYwODEyOX0.mNPIAGFKhJ65dsSllBprGYk3yZfnJXfYmDcdljW8xA4'
     );
+
+    const MY_LIFF_ID = "2009338098-z7JvUXY3"; 
+    async function initializeLiff() {
+        try {
+            await liff.init({ liffId: MY_LIFF_ID });
+            if (liff.isLoggedIn()) {
+                console.log("LINE Login Success!");
+            } else {
+            }
+        } catch (error) {
+            console.error("LIFFの初期化に失敗しました！", error);
+        }
+    }
+    initializeLiff();    
 
     const JAPAN_PREFECTURES_BY_REGION = {
         "北海道・東北": ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"],
@@ -1773,11 +1788,9 @@
         let currentDayIndex = allCalendarDates.indexOf(dateString);
         let currentDateString = dateString;
 
-        // 関数（createDayEventModalなど）の最初の方でフラグを定義します
         let isDayProcessing = false;
 
         function showPrevDay() {
-            // 処理中なら何もしない（重複実行を防止）
             if (isDayProcessing) return;
             isDayProcessing = true;
 
@@ -1797,12 +1810,11 @@
                 updateDayModalContent(content, prevDate, eventsForPrevDay, 'prev'); 
             }
 
-            // 300ミリ秒後にロックを解除（スワイプアニメーションが終わる頃）
             setTimeout(() => { isDayProcessing = false; }, 300);
         }
 
         function showNextDay() {
-            // 処理中なら何もしない（重複実行を防止）
+
             if (isDayProcessing) return;
             isDayProcessing = true;
 
@@ -1822,7 +1834,6 @@
                 updateDayModalContent(content, nextDate, eventsForNextDay, 'next'); 
             }
 
-            // 300ミリ秒後にロックを解除
             setTimeout(() => { isDayProcessing = false; }, 300);
         }
 
@@ -1915,6 +1926,7 @@
             return [];
         }
     }
+
     
 
 async function fetchProductEvents() {
