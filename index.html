@@ -796,7 +796,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.9.2</label>
+        <label id="version-label">version: β.9.3</label>
     </div>
         
     <div class="search-container">
@@ -1114,9 +1114,9 @@
         if (!timeStr) return '';
         const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
         if (match) {
-            return `${match[1].padStart(2, '0')}：${match[2]}`;
+            return `${Number(match[1])}：${match[2]}`;
         }
-        return timeStr; 
+        return timeStr;
     }
 
     function formatDate(dateStr) {
