@@ -796,7 +796,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.9.1</label>
+        <label id="version-label">version: β.9.2</label>
     </div>
         
     <div class="search-container">
@@ -893,10 +893,10 @@
     const JAPANESE_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
     
     const EVENT_TYPES_LEGEND = [
-        { key: 'G1', label: 'G1', styleClass: 'style-G1', searchKeywords: ['G1大会'] },
-        { key: 'G2', label: 'G2', styleClass: 'style-G2', searchKeywords: ['G2大会'] },
-        { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'G3大会/チーム戦（オープン'] },
-        { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'G3大会/チーム戦（レギュラー'] },
+        { key: 'G1', label: 'G1', styleClass: 'style-G1', searchKeywords: ['G1'] },
+        { key: 'G2', label: 'G2', styleClass: 'style-G2', searchKeywords: ['G2'] },
+        { key: 'G3O', label: 'G3(O)', styleClass: 'style-G3O', searchKeywords: ['G3大会（オープン', 'G3大会/チーム戦（オープン', 'G3大会/タッグ戦（オープン'] },
+        { key: 'G3R', label: 'G3(R)', styleClass: 'style-G3R', searchKeywords: ['G3大会（レギュラー', 'G3大会/チーム戦（レギュラー' , 'G3大会/タッグ戦（レギュラー']},
         { key: 'S1AMB', label: 'S1,AMB', styleClass: 'style-S1AMB', searchKeywords: ['S1イベント', 'アンバサダーイベント', 'S1【予定】'] },
         { key: 'Meetup', label: '交流会', styleClass: 'style-Meetup', searchKeywords: ['交流会', '非公式大会'] }, 
         { key: 'Other', label: 'その他', styleClass: 'style-Other', searchKeywords: [] }
@@ -1251,21 +1251,32 @@
         if (eventType === 'ProductRelease') {
             return { class: 'label-product', label: '' };
         }
-        if (eventType.includes("G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
+        if (
+            eventType.includes("G3大会（レギュラー") ||
+            eventType.includes("G3大会/チーム戦（レギュラー") ||
+            eventType.includes("G3大会/タッグ戦（レギュラー")
+            ) {
             return { class: 'label-yellow', label: '' };
-        } else if (eventType.includes("G3大会/チーム戦（G3大会（レギュラー") || eventType.includes("レギュラークラス")) {
-            return { class: 'label-yellow', label: '' };
-        } else if (eventType.includes("G3大会（オープン") || eventType.includes("オープンクラス")) {
+        } else if (
+            eventType.includes("G3大会（オープン") ||
+            eventType.includes("G3大会/チーム戦（オープン") ||
+            eventType.includes("G3大会/タッグ戦（オープン")
+            ) {  
             return { class: 'label-orange', label: '' };
-        } else if (eventType.includes("G3大会/チーム戦（オープン") || eventType.includes("オープンクラス")) {
-            return { class: 'label-orange', label: '' };
-        } else if (eventType.includes("S1イベント") || eventType.includes("アンバサダーイベント") || eventType.includes("S1【予定】")) {
+        } else if (
+            eventType.includes("S1") ||
+            eventType.includes("アンバサダーイベント") ||
+            eventType.includes("S1【予定】")
+            ) {  
             return { class: 'label-lightblue', label: '' };
-        } else if (eventType.includes("交流会") || eventType.includes("非公式大会")) { 
+        } else if (
+            eventType.includes("交流会") || 
+            eventType.includes("非公式大会")
+            ) { 
             return { class: 'label-meetup', label: '' };
-        } else if (eventType.includes("G2大会")) {
+        } else if (eventType.includes("G2")) {
             return { class: 'label-gray', label: '' };
-        } else if (eventType.includes("G1大会")) {
+        } else if (eventType.includes("G1")) {
             return { class: 'label-black', label: '' };
         } else {
             return { class: 'label-green', label: '' }; 
