@@ -12,7 +12,8 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 # ==========================================================
 # 🔴 定数定義
 # ==========================================================
-IFRAME_URL = "https://beyblade.takaratomy.co.jp/beyblade-x/shop_event/manage_jpnew/open_list_all.html"
+# IFRAME_URL = "https://beyblade.takaratomy.co.jp/beyblade-x/shop_event/manage_jpnew/open_list_all.html"
+IFRAME_URL = "https://beyblade.takaratomy.co.jp/beyblade-x/shop_event/manage/open_list_all.html"
 OUTPUT_JSON_FILENAME = "events.json"
 TABLE_SELECTOR = "table.event_list"
 LINK_SELECTOR = "a.btnRoundmini" # 👈 追加: リンク要素のセレクター
