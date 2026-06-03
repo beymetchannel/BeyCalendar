@@ -308,7 +308,7 @@
       #event-modal {
           display: flex;
           position: fixed;
-          z-index: 1000;
+          z-index: 2000;
           left: 0;
           top: 0; 
           width: 100%;
@@ -443,7 +443,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1100;
+            z-index: 2100;
             overflow-y: hidden;
             padding-top: max(20px, env(safe-area-inset-top));
             padding-bottom: max(20px, env(safe-area-inset-bottom));
@@ -475,7 +475,7 @@
             width: 100%;
             height: 100%; 
             background-color: rgba(0, 0, 0, 0.2); 
-            z-index: 1500; 
+            z-index: 2500; 
             display: flex;
             flex-direction: column; 
             justify-content: flex-end; 
@@ -642,7 +642,7 @@
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 0px;
-            z-index: 900;
+            z-index: 1800;
             backdrop-filter: blur(2px);
             display: block;
             transition: opacity 0.3s, background-color 0.2s;
@@ -789,14 +789,161 @@
             text-align: center;
         }
 
+        #map-btn {
+            position: fixed;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            right: 78px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1800;
+            backdrop-filter: blur(2px);
+            display: block;
+            transition: opacity 0.3s, background-color 0.2s;
+        }
+
+        #map-btn p {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map-container {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+            margin: 5px auto;
+            border: 1px solid #cccccc;
+            background-color: #ffffff;
+            position: relative;
+            z-index: 1;
+        }
+        #map-container.visible {
+            display: block;
+        }
+
+        #map-view {
+            width: 100%;
+            height: calc(100dvh - 220px);
+            min-height: 400px;
+        }
+
+        #current-location-btn {
+            position: fixed;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            left: 10px;
+            background-color: rgba(200, 30, 30, 0.3);
+            color: #ffffff;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1800;
+            backdrop-filter: blur(2px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            transition: background-color 0.2s;
+            padding: 0;
+            line-height: 1;
+        }
+        #current-location-btn:active {
+            background-color: rgb(200, 30, 30);
+        }
+
+        .date-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-basis: 100%;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .date-filter-group label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #505050;
+        }
+        .date-filter-group input[type="date"] {
+            padding: 6px 8px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #505050;
+            flex: 1;
+            min-width: 130px;
+        }
+        .date-filter-separator {
+            color: #505050;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .map-event-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+            will-change: transform;
+        }
+
+        .map-marker-pill {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            padding: 0;          
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            line-height: 1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+            letter-spacing: 0.3px;
+            transition: transform 0.2s;
+        }
+
+        .map-marker-pill.label-yellow    { background-color: #FFC75F; color: white; }
+        .map-marker-pill.label-orange    { background-color: #fd9048; color: white; }
+        .map-marker-pill.label-lightblue { background-color: #97f3f3;   color: rgb(100, 100, 100); }
+        .map-marker-pill.label-gray      { background-color: #ff4a4a; color: white; }
+        .map-marker-pill.label-black     { background-color: #8763c1; color: white; }
+        .map-marker-pill.label-green     { background-color: #f9f500;   color: rgb(100, 100, 100); }
+        .map-marker-pill.label-meetup    { background-color: #9ffc6d;   color: rgb(100, 100, 100); }
+
+        .map-current-location-marker {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: #E8001A;
+            box-shadow: 0 0 0 4px rgba(232,0,26,0.25), 0 2px 6px rgba(0,0,0,0.3);
+            cursor: default;
+        }
+
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- MapLibre GL JS (無料・オープンソース) -->
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.9.4</label>
+        <label id="version-label">version: β.10.0</label>
     </div>
         
     <div class="search-container">
@@ -825,6 +972,12 @@
         </div>
         <div id="label-legend-container"></div>
         
+        <div id="map-date-filter" class="date-filter-group" style="display:none;">
+            <label style="font-size: 13px;">日程絞り込み</label>
+            <input type="date" id="map-date-from" placeholder="開始日">
+            <span class="date-filter-separator">〜</span>
+            <input type="date" id="map-date-to" placeholder="終了日">
+        </div>
     </div>
 
 
@@ -844,6 +997,10 @@
             </div>
     </div>
 
+    <div id="map-container">
+        <div id="map-view"></div>
+    </div>
+
     <div class="page-footer" style="font-size: 9px;color: #808080; text-align: center;line-height: 1.0;margin-top: 15px;">
         <p>Source:<a href="https://beyblade.takaratomy.co.jp/beyblade-x/event/schedule.html" target="_blank" style="color: #505050;">beyblade.takaratomy.co.jp</a></p>
         <p>Developed by <a href="https://youtube.com/channel/UCMwImb7TTdSbQsLz_gyHr4w/" target="_blank" style="color: #505050;">BeyMet</a>.</p>
@@ -858,26 +1015,14 @@
     </div>
     
     <button id="back-to-top"><p style="font-size:20px; font-weight: bold;">︿</p><p style="margin-bottom: 15px;">TOP</p></button>
+    <button id="map-btn"><img src="MapIcon.png" style="width:24px;height:24px;object-fit:contain;display:block;margin:0 auto 2px;"><p style="margin-bottom: 5px;">MAP</p></button>
+    <button id="current-location-btn"><img src="GPS.png" style="width:22px;height:22px;object-fit:contain;display:block;"><span>現在地</span></button>
 
-<script type="module">
+    <script type="module">
     const supabase = window.supabase.createClient(
         'https://yyrsscvofuoufkujetgf.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cnNzY3ZvZnVvdWZrdWpldGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzIxMjksImV4cCI6MjA3OTYwODEyOX0.mNPIAGFKhJ65dsSllBprGYk3yZfnJXfYmDcdljW8xA4'
     );
-
-    const MY_LIFF_ID = "2009338098-z7JvUXY3"; 
-    async function initializeLiff() {
-        try {
-            await liff.init({ liffId: MY_LIFF_ID });
-            if (liff.isLoggedIn()) {
-                console.log("LINE Login Success!");
-            } else {
-            }
-        } catch (error) {
-            console.error("LIFFの初期化に失敗しました！", error);
-        }
-    }
-    initializeLiff();    
 
     const JAPAN_PREFECTURES_BY_REGION = {
         "北海道・東北": ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"],
@@ -2486,6 +2631,76 @@ function isJapaneseHoliday(year, month, day) {
             }
         }
     }
+    
+    function updateFilterStatus(baseFilterDescription = null) {
+        let filterDesc = baseFilterDescription;
+        
+        if (!filterDesc) {
+            filterDesc = [];
+            const selectedPrefectures = Array.from(prefectureContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .filter(cb => !cb.classList.contains('region-select-checkbox')) 
+                .map(checkbox => checkbox.value);
+            if (selectedPrefectures.length > 0) {
+                filterDesc.push(`都道府県: ${selectedPrefectures.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('、')}`);
+            }
+            const citySearchText = cityInput.value.trim().toLowerCase();
+            if (citySearchText !== "") {
+                filterDesc.push(`キーワード: "${citySearchText}"`);
+            }
+            if (activeEventTypes.length < EVENT_TYPES_LEGEND.length && activeEventTypes.length > 0) {
+                filterDesc.push(`${activeEventTypes.map(key => EVENT_TYPES_LEGEND.find(item => item.key === key)?.label || '').join('、')}`);
+            }
+            const favToggle = document.getElementById('fav-filter-toggle');
+            if (favToggle && favToggle.checked) {
+                filterDesc.push('お気に入り');
+            }
+        } else {
+            filterDesc = [...baseFilterDescription];
+        }
+
+        let mapDateFilteredCount = 0;
+        if (isMapView) {
+            const fromVal = mapDateFrom.value;
+            const toVal   = mapDateTo.value;
+            if (fromVal || toVal) {
+                const dateStr = `${fromVal ? fromVal.replace(/-/g, '/') : ''}〜${toVal ? toVal.replace(/-/g, '/') : ''}`;
+                filterDesc.push(`日程: ${dateStr}`);
+            }
+
+            const dateFrom = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+            const dateTo   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+            const eventsToShow = filteredEvents.filter(event => {
+                if (event.type === 'ProductRelease') return false;
+                if (!event.address || !event.address.trim()) return false;
+                if (dateFrom || dateTo) {
+                    const d = new Date(event.dateString + 'T00:00:00');
+                    if (dateFrom && d < dateFrom) return false;
+                    if (dateTo   && d > dateTo)   return false;
+                }
+                return true;
+            });
+            mapDateFilteredCount = eventsToShow.length;
+        }
+
+        const areNoEventTypesSelected = activeEventTypes.length === 0;
+        const productCountInFiltered = filteredEvents.filter(event => event.type === 'ProductRelease').length;
+
+        let descriptionText = '';
+
+        if (areNoEventTypesSelected) {
+            descriptionText = `表示するイベントを選択してください。`;
+        } else {
+            let displayCount = isMapView ? mapDateFilteredCount : (filteredEvents.length - productCountInFiltered);
+            
+            if (filterDesc.length > 0) {
+                descriptionText = `${filterDesc.join(' / ')} に一致する ${displayCount}件のイベントを表示中`;
+            } else {
+                descriptionText = `全イベントを表示中 (${displayCount}件)`;
+            }
+        }
+
+        filterStatus.textContent = descriptionText;
+    }
 
     function handleSearch(updateStatus = true) {
         if (cityInput) {
@@ -2600,31 +2815,10 @@ function isJapaneseHoliday(year, month, day) {
         uniqueEventDates = getUniqueEventDates(filteredEvents); 
         allCalendarDates = getAllDatesInCalendarRange();
         
-        const productCountInFiltered = filteredEvents.filter(event => event.type === 'ProductRelease').length;
-        const areNoEventTypesSelected = activeEventTypes.length === 0;
-        const isFavFilterActive = favToggle && favToggle.checked; 
+        updateFilterStatus(filterDescription);
         
-        let descriptionText = '';
-
-        if (areNoEventTypesSelected) {
-            descriptionText = `表示するイベントを選択してください。`;
-        } else if (isFavFilterActive) {
-
-            const combinedDescription = filterDescription.join(' / ');
-
-            const displayCount = filteredEvents.length - productCountInFiltered;
-
-            descriptionText = `${combinedDescription} に一致する ${relevantFavsCount}件のイベントを表示中`;
-
-        } else if (filterDescription.length > 0) {
-            descriptionText = `${filterDescription.join(' / ')} に一致する ${filteredEvents.length - productCountInFiltered} 件のイベントを表示中`;
-        } else {
-            descriptionText = `全イベントを表示中 (${allNonProductEventsCount}件)`;
-        }
-
-        filterStatus.textContent = descriptionText;
-
         generateCalendar(filteredEvents, TARGET_START_YEAR, TARGET_START_MONTH, TARGET_MAX_DATE);
+        document.dispatchEvent(new Event('searchComplete'));
     }
 
     function dayClickHandler(e) {
@@ -2669,7 +2863,385 @@ function isJapaneseHoliday(year, month, day) {
         });
     }
 
+    let mapInstance = null; 
+    let mapMarkers = [];
+    let isMapView = false;
+    let mapRenderToken = 0;
+
+    const mapBtn      = document.getElementById('map-btn');
+    const mapContainer      = document.getElementById('map-container');
+    const calendarContainer = document.querySelector('.calendar-container');
+    const currentLocationBtn= document.getElementById('current-location-btn');
+    const mapDateFilter     = document.getElementById('map-date-filter');
+    const mapDateFrom       = document.getElementById('map-date-from');
+    const mapDateTo         = document.getElementById('map-date-to');
+
+    function getMarkerLabelClass(eventType) {
+        if (!eventType || eventType === 'ProductRelease') return 'label-product';
+        if (eventType.includes('G3大会（レギュラー') || eventType.includes('G3大会/チーム戦（レギュラー') || eventType.includes('G3大会/タッグ戦（レギュラー')) return 'label-yellow';
+        if (eventType.includes('G3大会（オープン')   || eventType.includes('G3大会/チーム戦（オープン')   || eventType.includes('G3大会/タッグ戦（オープン'))   return 'label-orange';
+        if (eventType.includes('S1') || eventType.includes('アンバサダーイベント') || eventType.includes('S1【予定】')) return 'label-lightblue';
+        if (eventType.includes('交流会') || eventType.includes('非公式大会')) return 'label-meetup';
+        if (eventType.includes('G2')) return 'label-gray';
+        if (eventType.includes('G1')) return 'label-black';
+        return 'label-green';
+    }
+
+    // ---------- 住所 ----------
+    function cleanAddressForGeocode(address) {
+        if (!address) return '';
+        // 都道府県の重複除去
+        let addr = address.replace(/(東京都|北海道|(?:.{2})[都道府県])\1/g, '$1');
+        // 全角スペース以降（建物名）除去
+        addr = addr.split('\u3000')[0];
+        // 半角スペース以降の施設名除去
+        addr = addr.replace(/(\d)[ \t]+.+$/, '$1');
+        // 改行以降除去
+        addr = addr.split('\n')[0].trim();
+        return addr;
+    }
+
+    // ---------- ジオコーディング（国土地理院API + Nominatimフォールバック） ----------
+    const geocodeCache = {};
+    let geocodeQueue   = [];
+    let geocodeRunning = false;
+
+    function geocodeAddress(rawAddress) {
+        const address = cleanAddressForGeocode(rawAddress);
+        if (!address) return Promise.resolve(null);
+        if (geocodeCache[address] !== undefined) return Promise.resolve(geocodeCache[address]);
+        return new Promise((resolve) => {
+            geocodeQueue.push({ address, resolve });
+            if (!geocodeRunning) runGeocodeQueue();
+        });
+    }
+
+    // 国土地理院 住所検索API（日本政府提供・無料・CORS対応・日本住所に最適）
+    async function geocodeByGSI(address) {
+        try {
+            const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`;
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const coords = data[0].geometry.coordinates; // [lng, lat]
+                return { lat: coords[1], lng: coords[0] };
+            }
+            return null;
+        } catch(e) {
+            return null;
+        }
+    }
+
+    // Nominatim（OpenStreetMap）フォールバック
+    async function geocodeByNominatim(address) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=jp&accept-language=ja`;
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data && data.length > 0) {
+                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            }
+            return null;
+        } catch(e) {
+            return null;
+        }
+    }
+
+    async function runGeocodeQueue() {
+        geocodeRunning = true;
+        while (geocodeQueue.length > 0) {
+            const { address, resolve } = geocodeQueue.shift();
+            if (geocodeCache[address] !== undefined) { resolve(geocodeCache[address]); continue; }
+
+            let coords = await geocodeByGSI(address);
+
+            if (!coords) {
+                coords = await geocodeByNominatim(address);
+                if (coords) {
+                    await new Promise(r => setTimeout(r, 1100)); // Nominatim利用規約: 1秒以上
+                }
+            }
+
+            geocodeCache[address] = coords;
+            resolve(coords);
+
+            await new Promise(r => setTimeout(r, 100));
+        }
+        geocodeRunning = false;
+    }
+
+    function showMapLoadingIndicator(text) {
+        let el = document.getElementById('map-loading-indicator');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'map-loading-indicator';
+            el.style.cssText = [
+                'position:absolute','bottom:36px','left:50%','transform:translateX(-50%)',
+                'background:rgba(0,0,0,0.65)','color:#fff','padding:6px 16px',
+                'border-radius:16px','font-size:12px','z-index:1000','pointer-events:none',
+                'backdrop-filter:blur(4px)','white-space:nowrap'
+            ].join(';');
+            document.getElementById('map-view').appendChild(el);
+        }
+        el.textContent = text;
+        el.style.display = 'block';
+    }
+    function hideMapLoadingIndicator() {
+        const el = document.getElementById('map-loading-indicator');
+        if (el) el.style.display = 'none';
+    }
+
+    async function renderMapMarkers() {
+        if (!mapInstance) return;
+
+        const myToken = ++mapRenderToken;
+
+        mapMarkers.forEach(({ marker }) => marker.remove());
+        mapMarkers = [];
+
+        const fromVal = mapDateFrom.value;
+        const toVal   = mapDateTo.value;
+        const dateFrom = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+        const dateTo   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+
+        const eventsToShow = filteredEvents.filter(event => {
+            if (event.type === 'ProductRelease') return false;
+            if (!event.address || !event.address.trim()) return false;
+            if (dateFrom || dateTo) {
+                const d = new Date(event.dateString + 'T00:00:00');
+                if (dateFrom && d < dateFrom) return false;
+                if (dateTo   && d > dateTo)   return false;
+            }
+            return true;
+        });
+
+        if (eventsToShow.length === 0) { hideMapLoadingIndicator(); return; }
+
+        const addressGroups = {};
+        eventsToShow.forEach(event => {
+            const key = cleanAddressForGeocode(event.address);
+            if (!key) return;
+            if (!addressGroups[key]) addressGroups[key] = [];
+            addressGroups[key].push(event);
+        });
+
+        const uniqueAddresses = Object.keys(addressGroups);
+        const uncached = uniqueAddresses.filter(a => geocodeCache[a] === undefined);
+        if (uncached.length > 0) showMapLoadingIndicator(`MAPデータ読み込み中… (0 / ${uncached.length})`);
+
+        let geocodedCount = 0;
+        const lngLats = [];
+        let placed = 0;
+
+        for (const address of uniqueAddresses) {
+            if (mapRenderToken !== myToken) return;
+
+            const coords = await geocodeAddress(address);
+            if (mapRenderToken !== myToken) return;
+
+            if (uncached.includes(address)) {
+                geocodedCount++;
+                showMapLoadingIndicator(`MAPデータ読み込み中… (${geocodedCount} / ${uncached.length})`);
+            }
+            if (!coords) continue;
+
+            const events = addressGroups[address];
+            events.forEach((event, idx) => {
+                const angle  = idx === 0 ? 0 : (idx / events.length) * 2 * Math.PI;
+                const radius = idx === 0 ? 0 : 0.00045;
+                const lat = coords.lat + Math.sin(angle) * radius;
+                const lng = coords.lng + Math.cos(angle) * radius;
+
+                const d = new Date(event.dateString);
+                const dateLabel = `${d.getMonth()+1}/${d.getDate()}`;
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diffDays = Math.abs(d - today);
+                const zIndex = Math.max(0, 100000 - Math.floor(diffDays / 86400000));
+
+                const labelClass = getMarkerLabelClass(event.type);
+                const markerEl = document.createElement('div');
+                markerEl.className = 'map-event-marker';
+                markerEl.style.zIndex = zIndex;
+                markerEl.innerHTML = `
+                    <div class="map-marker-pill ${labelClass}">${dateLabel}</div>
+                `;
+                markerEl.addEventListener('click', () => {
+                    const dayEvents = filteredEvents.filter(e =>
+                        e.dateString === event.dateString && e.type !== 'ProductRelease'
+                    );
+                    showEventDetails(event, dayEvents);
+                });
+
+                const marker = new maplibregl.Marker({ element: markerEl })
+                    .setLngLat([lng, lat])
+                    .addTo(mapInstance);
+
+                mapMarkers.push({ marker });
+                lngLats.push([lng, lat]);
+                placed++;
+            });
+        }
+
+        hideMapLoadingIndicator();
+        if (placed > 0) {
+            const bounds = lngLats.reduce(
+                (b, ll) => b.extend(ll),
+                new maplibregl.LngLatBounds(lngLats[0], lngLats[0])
+            );
+            mapInstance.fitBounds(bounds, { padding: 40, maxZoom: 14 });
+        }
+    }
+
+    function initMap() {
+        if (mapInstance) return;
+
+        mapInstance = new maplibregl.Map({
+            container: 'map-view',
+            style: 'https://tiles.openfreemap.org/styles/liberty',
+            center: [138.0, 36.5],
+            zoom: 5,
+            attributionControl: false
+        });
+
+        mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+        mapInstance.touchZoomRotate.disableRotation();
+
+        mapInstance.on('load', () => {
+            const jaFields = ['name:ja', 'name'];
+            const layers = mapInstance.getStyle().layers;
+            layers.forEach(layer => {
+                if (layer.type === 'symbol') {
+                    try {
+                        mapInstance.setLayoutProperty(layer.id, 'text-field', [
+                            'coalesce',
+                            ['get', 'name:ja'],
+                            ['get', 'name']
+                        ]);
+                    } catch(e) { /* レイヤーによっては設定不要 */ }
+                }
+
+                if (layer.type === 'line') {
+                    try {
+                        const paint = layer.paint || {};
+                        const lineColor = paint['line-color'];
+                        if (lineColor) {
+                            const colorStr = typeof lineColor === 'string' ? lineColor.toLowerCase() : '';
+                            const isOrangeish = colorStr.match(/#[ef][a-f0-9]{5}/) ||
+                                colorStr.includes('orange') || colorStr.includes('yellow') ||
+                                (colorStr.match(/#([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})/) &&
+                                    parseInt(RegExp.$1,16) > 200 && parseInt(RegExp.$2,16) > 140 && parseInt(RegExp.$3,16) < 100);
+                            if (isOrangeish) {
+                                mapInstance.setPaintProperty(layer.id, 'line-color', '#c8c8c8');
+                            }
+                        }
+                    } catch(e) { /* skip */ }
+                }
+                if (layer.type === 'symbol' && layer.id && (layer.id.includes('road') || layer.id.includes('highway'))) {
+                    try {
+                        mapInstance.setPaintProperty(layer.id, 'text-color', '#666666');
+                    } catch(e) { /* skip */ }
+                }
+            });
+            renderMapMarkers();
+        });
+    }
+
+    function switchToMapView() {
+        isMapView = true;
+        mapBtn.classList.add('map-active');
+        calendarContainer.style.display = 'none';
+        mapContainer.classList.add('visible');
+        currentLocationBtn.style.display = 'flex';
+        mapDateFilter.style.display = 'flex';
+        mapBtn.innerHTML = '<img src="CalendarIcon.png" style="width:24px;height:24px;object-fit:contain;display:block;margin:0 auto 2px;"><p style="margin-bottom: 5px;">CAL</p>';
+
+        if (!mapInstance) {
+            initMap();
+        } else {
+            mapInstance.resize();
+            setTimeout(() => renderMapMarkers(), 150);
+        }
+        updateFilterStatus()
+    }
+
+    function switchToCalendarView() {
+        isMapView = false;
+        mapRenderToken++;
+        mapBtn.classList.remove('map-active');
+        calendarContainer.style.display = '';
+        mapContainer.classList.remove('visible');
+        currentLocationBtn.style.display = 'none';
+        mapDateFilter.style.display = 'none';
+        mapBtn.innerHTML = '<img src="MapIcon.png" style="width:24px;height:24px;object-fit:contain;display:block;margin:0 auto 2px;"><p style="margin-bottom: 5px;">MAP</p>';
+        updateFilterStatus();
+    }
+
+    mapBtn.addEventListener('click', () => {
+        if (isMapView) switchToCalendarView();
+        else switchToMapView();
+    });
+
+    let currentLocationMarker = null;
+
+    currentLocationBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) return;
+        
+        
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                if (mapInstance) {
+                    const lngLat = [pos.coords.longitude, pos.coords.latitude];
+                    
+                    if (currentLocationMarker) { 
+                        currentLocationMarker.remove(); 
+                        currentLocationMarker = null; 
+                    }
+                    
+                    const el = document.createElement('div');
+                    el.className = 'map-current-location-marker';
+                    currentLocationMarker = new maplibregl.Marker({ element: el })
+                        .setLngLat(lngLat)
+                        .addTo(mapInstance);
+
+                    if (mapMarkers.length > 0) {
+                        const bounds = new maplibregl.LngLatBounds(lngLat, lngLat);
+                        
+                        mapMarkers.forEach(({ marker }) => {
+                            bounds.extend(marker.getLngLat());
+                        });
+
+                        mapInstance.fitBounds(bounds, {
+                            padding: 50,
+                            maxZoom: 11,
+                            duration: 800
+                        });
+                    } else {
+                        mapInstance.flyTo({
+                            center: lngLat,
+                            zoom: 11,
+                            duration: 800
+                        });
+                    }
+                }
+            },
+            () => alert('現在地を取得できませんでした。')
+        );
+    });
+
+    mapDateFrom.addEventListener('input',  () => { if (isMapView) { renderMapMarkers(); updateFilterStatus(); } });
+    mapDateFrom.addEventListener('change', () => { if (isMapView) { renderMapMarkers(); updateFilterStatus(); } });
+    mapDateTo.addEventListener('input',    () => { if (isMapView) { renderMapMarkers(); updateFilterStatus(); } });
+    mapDateTo.addEventListener('change',   () => { if (isMapView) { renderMapMarkers(); updateFilterStatus(); } });
+
+    document.addEventListener('searchComplete', () => {
+        if (isMapView) renderMapMarkers();
+    });
+
     loadDataAndInitialize();
+
 
 </script>
 </body>
