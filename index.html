@@ -924,6 +924,18 @@
         .map-marker-pill.label-green     { background-color: #f9f500;   color: rgb(100, 100, 100); }
         .map-marker-pill.label-meetup    { background-color: #9ffc6d;   color: rgb(100, 100, 100); }
 
+        .map-marker-pill.map-marker-fav {
+            width: 38px;
+            height: 38px;
+            font-size: 10px;
+            line-height: 1.2;
+            flex-direction: column;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
         .map-current-location-marker {
             width: 18px;
             height: 18px;
@@ -943,7 +955,7 @@
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.10.1</label>
+        <label id="version-label">version: β.10.2</label>
     </div>
         
     <div class="search-container">
@@ -1155,6 +1167,20 @@
                     starSpan.remove();
                 }
             }
+        });
+
+        updateMapMarkerFav(eventId, isFav);
+    }
+
+    function updateMapMarkerFav(eventId, isFav) {
+        if (!isMapView) return;
+        mapMarkers.forEach(({ marker, event, buildPillHTML }) => {
+            if (!event) return;
+            const mId = generateEventId(event);
+            if (mId !== eventId) return;
+            const el = marker.getElement();
+            if (!el) return;
+            el.innerHTML = buildPillHTML(isFav);
         });
     }
 
@@ -1568,6 +1594,8 @@
         isReturningFromDetail = false;
         
         if(topButton) topButton.style.display = 'none';
+        if(document.getElementById('map-btn')) document.getElementById('map-btn').style.display = 'none';
+        if(document.getElementById('current-location-btn')) document.getElementById('current-location-btn').style.display = 'none';
 
         let targetEventList = eventList;
         if (returnToDayDate !== event.dateString) {
@@ -1651,11 +1679,21 @@
         eventModal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; 
         
+        flyToEventOnMap(event);
+
         setupSwipe(eventModal, showPrevEvent, showNextEvent);
 
         setTimeout(() => showSwipeGuide(eventModal, '左右スワイプでイベント移動', 'swipeGuideShown_Details'), 100); 
     }
     
+    function flyToEventOnMap(event) {
+        if (!isMapView || !mapInstance) return;
+        const eventId = generateEventId(event);
+        const found = mapMarkers.find(m => m.event && generateEventId(m.event) === eventId);
+        if (found && found.lngLat) {
+            mapInstance.flyTo({ center: found.lngLat, duration: 500 });
+        }
+    }
 
     function showPrevEvent() {
         if (isEventProcessing) return;
@@ -1665,6 +1703,7 @@
 
             currentEventIndex--;
             updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'prev');
+            flyToEventOnMap(swipeableEvents[currentEventIndex]);
             setTimeout(() => { isEventProcessing = false; }, 300);
         } else {
 
@@ -1685,6 +1724,7 @@
 
             currentEventIndex++;
             updateEventDetailsModal(swipeableEvents[currentEventIndex], swipeableEvents, 'next');
+            flyToEventOnMap(swipeableEvents[currentEventIndex]);
             setTimeout(() => { isEventProcessing = false; }, 300);
         } else {
 
@@ -1726,6 +1766,10 @@
         } else {
             document.body.style.overflow = ''; 
             if(topButton) topButton.style.display = 'block';
+            if(document.getElementById('map-btn')) document.getElementById('map-btn').style.display = 'block';
+            if(document.getElementById('current-location-btn') && typeof isMapView !== 'undefined' && isMapView) {
+                document.getElementById('current-location-btn').style.display = 'flex';
+            }
         }
     }
 
@@ -1889,6 +1933,8 @@
 
     function createDayEventModal(dateString, dayEvents) {
         if(topButton) topButton.style.display = 'none';
+        if(document.getElementById('map-btn')) document.getElementById('map-btn').style.display = 'none';
+        if(document.getElementById('current-location-btn')) document.getElementById('current-location-btn').style.display = 'none';
 
         document.querySelector('.event-list-modal-overlay')?.remove();
 
@@ -1941,6 +1987,10 @@
                 document.body.style.overflow = '';
                 overlay.remove();
                 if(topButton) topButton.style.display = 'block';
+                if(document.getElementById('map-btn')) document.getElementById('map-btn').style.display = 'block';
+                if(document.getElementById('current-location-btn') && typeof isMapView !== 'undefined' && isMapView) {
+                    document.getElementById('current-location-btn').style.display = 'flex';
+                }
             }        
         };
 
@@ -2011,6 +2061,10 @@
                 overlay.remove();
                 document.body.style.overflow = '';
                 if(topButton) topButton.style.display = 'block';
+                if(document.getElementById('map-btn')) document.getElementById('map-btn').style.display = 'block';
+                if(document.getElementById('current-location-btn') && typeof isMapView !== 'undefined' && isMapView) {
+                    document.getElementById('current-location-btn').style.display = 'flex';
+                }
             }
         });
         
@@ -2918,7 +2972,6 @@ function isJapaneseHoliday(year, month, day) {
         });
     }
 
-    // 国土地理院 住所検索API（日本政府提供・無料・CORS対応・日本住所に最適）
     async function geocodeByGSI(address) {
         try {
             const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`;
@@ -2935,7 +2988,6 @@ function isJapaneseHoliday(year, month, day) {
         }
     }
 
-    // Nominatim（OpenStreetMap）フォールバック
     async function geocodeByNominatim(address) {
         try {
             const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=jp&accept-language=ja`;
@@ -3052,7 +3104,7 @@ function isJapaneseHoliday(year, month, day) {
             const events = addressGroups[address];
             events.forEach((event, idx) => {
                 const angle  = idx === 0 ? 0 : (idx / events.length) * 2 * Math.PI;
-                const radius = idx === 0 ? 0 : 0.00045;
+                const radius = idx === 0 ? 0 : 0.00022;
                 const lat = coords.lat + Math.sin(angle) * radius;
                 const lng = coords.lng + Math.cos(angle) * radius;
 
@@ -3063,12 +3115,19 @@ function isJapaneseHoliday(year, month, day) {
                 const zIndex = Math.max(0, 100000 - Math.floor(diffDays / 86400000));
 
                 const labelClass = getMarkerLabelClass(event.type);
+                const eventId = generateEventId(event);
+                const isFav = favoriteEventIds.has(eventId);
+
                 const markerEl = document.createElement('div');
                 markerEl.className = 'map-event-marker';
                 markerEl.style.zIndex = zIndex;
-                markerEl.innerHTML = `
-                    <div class="map-marker-pill ${labelClass}">${dateLabel}</div>
-                `;
+                markerEl.dataset.eventId = eventId;
+
+                function buildPillHTML(fav) {
+                    return `<div class="map-marker-pill ${labelClass}${fav ? ' map-marker-fav' : ''}">${fav ? '★<br>' : ''}${dateLabel}</div>`;
+                }
+                markerEl.innerHTML = buildPillHTML(isFav);
+
                 markerEl.addEventListener('click', () => {
                     const dayEvents = filteredEvents.filter(e =>
                         e.dateString === event.dateString && e.type !== 'ProductRelease'
@@ -3080,7 +3139,7 @@ function isJapaneseHoliday(year, month, day) {
                     .setLngLat([lng, lat])
                     .addTo(mapInstance);
 
-                mapMarkers.push({ marker });
+                mapMarkers.push({ marker, event, lngLat: [lng, lat], buildPillHTML });
                 lngLats.push([lng, lat]);
                 placed++;
             });
@@ -3122,7 +3181,7 @@ function isJapaneseHoliday(year, month, day) {
                             ['get', 'name:ja'],
                             ['get', 'name']
                         ]);
-                    } catch(e) { /* レイヤーによっては設定不要 */ }
+                    } catch(e) { /* skip */ }
                 }
 
                 if (layer.type === 'line') {
