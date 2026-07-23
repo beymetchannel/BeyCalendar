@@ -7,7 +7,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="BeyCalendarIcon.png">
     <link rel="icon" href="BeyCalendarIcon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style"share-btnontent="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BEYカレンダー">
     <title>BEYカレンダー</title>
     <script>
@@ -655,7 +655,7 @@
         .fav-btn {
             cursor: pointer;
             color: #ccc;
-            font-size: 24px;
+            font-size: 27px;
             line-height: 1;
             user-select: none;
             transition: color 0.2s, transform 0.1s;
@@ -678,6 +678,31 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .share-btn {
+            cursor: pointer;
+            color: #808080;
+            line-height: 1;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, transform 0.1s;
+        }
+
+        .share-btn:active {
+            transform: scale(1.15);
+        }
+
+        .share-btn:hover {
+            color: #505050;
         }
 
         .event-fav-col {
@@ -948,14 +973,13 @@
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- MapLibre GL JS (無料・オープンソース) -->
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body>
     <div id="title-wrapper">
         <img id="title-image" src="BeyCalendarTitle.png" alt="BEYカレンダー" loading="lazy">
-        <label id="version-label">version: β.10.2</label>
+        <label id="version-label">version: β.11.0</label>
     </div>
         
     <div class="search-container">
@@ -1347,6 +1371,113 @@
     }
 
 
+    function getMapAppUrl(address) {
+        if (!address) return '#';
+        const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        const isAndroid = /Android/.test(ua);
+        const encoded = encodeURIComponent(address);
+
+        if (isAndroid) {
+            return `geo:0,0?q=${encoded}`;
+        } else if (isIOS) {
+            return `https://maps.apple.com/?q=${encoded}`;
+        }
+        return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+    }
+
+    function buildGoogleCalendarUrl(event, eventName) {
+        let y, mo, d;
+        if (event.dateString && /^\d{4}-\d{2}-\d{2}$/.test(event.dateString)) {
+            [y, mo, d] = event.dateString.split('-').map(Number);
+        } else {
+            const parsed = parseDate(event.date);
+            if (!parsed) return null;
+            y = parsed.year; mo = parsed.month; d = parsed.day;
+        }
+
+        const pad = n => String(n).padStart(2, '0');
+        const timeMatch = (event.time || '').match(/(\d{1,2})[：:](\d{2})/);
+        let datesParam;
+
+        if (timeMatch && event.time !== '時間不明') {
+            const startHour = Number(timeMatch[1]);
+            const startMin = Number(timeMatch[2]);
+            const startDate = new Date(y, mo - 1, d, startHour, startMin);
+            const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 終了時刻不明のため仮に2時間確保
+            const fmtDateTime = dt => `${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+            datesParam = `${fmtDateTime(startDate)}/${fmtDateTime(endDate)}`;
+        } else {
+            // 時間不明な場合は終日予定として登録
+            const startDate = new Date(y, mo - 1, d);
+            const endDate = new Date(y, mo - 1, d + 1);
+            const fmtDate = dt => `${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}`;
+            datesParam = `${fmtDate(startDate)}/${fmtDate(endDate)}`;
+        }
+
+        const detailsParts = [];
+        if (event.details) detailsParts.push(event.details.replace(/<[^>]+>/g, ''));
+        if (event.link) detailsParts.push(event.link);
+
+        const locationParts = [];
+        if (event.location) locationParts.push(event.location);
+        if (event.address) locationParts.push(event.address);
+
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: eventName,
+            dates: datesParam,
+            details: detailsParts.join('\n'),
+            location: locationParts.join(' ')
+        });
+
+        return `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+
+    function openInDefaultBrowser(url) {
+        const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        const isAndroid = /Android/.test(ua);
+
+        if (isIOS) {
+            let handedOff = false;
+            const onVisibilityChange = () => {
+                if (document.hidden) handedOff = true;
+            };
+            document.addEventListener('visibilitychange', onVisibilityChange);
+
+            const safariUrl = url.replace(/^https:\/\//, 'x-safari-https://').replace(/^http:\/\//, 'x-safari-http://');
+            window.location.href = safariUrl;
+
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', onVisibilityChange);
+                if (!handedOff) {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }, 800);
+        } else if (isAndroid) {
+
+            const strippedUrl = url.replace(/^https?:\/\//, '');
+            const intentUrl = `intent://${strippedUrl}#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+            window.location.href = intentUrl;
+        } else {
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
     function parseDate(dateStr) {
         if (!dateStr) return null;
 
@@ -1505,7 +1636,7 @@
         const address = event.address || '';
         
         const addressHtml = address 
-            ? `<p><strong>住所:</strong> <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" rel="noopener noreferrer">${address}</a></p>`
+            ? `<p><strong>住所:</strong> <a href="${getMapAppUrl(address)}" target="_blank" rel="noopener noreferrer">${address}</a></p>`
             : '';
             
         const eventName = event.name.replace('B4G2_','');        
@@ -1550,7 +1681,16 @@
             
             <div class="modal-header-row">
                 <div class="event-type-badge ${badgeClass}">${eventTypeText}</div>
-                <div class="fav-btn ${isFav ? 'active' : ''}" id="detail-fav-btn">★</div>
+                <div class="header-actions">
+                    <div class="share-btn" id="detail-share-btn" title="Googleカレンダーに追加" aria-label="Googleカレンダーに追加">
+                    <div class="share-btn" id="detail-share-btn" title="Googleカレンダーに追加" aria-label="Googleカレンダーに追加">
+                        <img src="GoogleCAL.png"
+                            alt="Googleカレンダーに追加"
+                            style="width:24px;height:24px;display:block;object-fit:contain;">
+                    </div>
+                    </div>
+                    <div class="fav-btn ${isFav ? 'active' : ''}" id="detail-fav-btn">★</div>
+                </div>
             </div>
             <h3>${eventName}</h3>
             
@@ -1582,6 +1722,18 @@
             favBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); 
                 toggleFavorite(event, favBtn);
+            });
+        }
+
+        const shareBtn = newContentWrapper.querySelector('#detail-share-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const calendarUrl = buildGoogleCalendarUrl(event, eventName);
+                if (calendarUrl) {
+
+                    openInDefaultBrowser(calendarUrl);
+                }
             });
         }
 
