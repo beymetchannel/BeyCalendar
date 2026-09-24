@@ -2245,14 +2245,7 @@
         }, 0);
     }
 
-    async function fetchSupabaseEvents() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const DEFAULT_PAST_DAYS = 1;
-        const EXTENDED_PAST_DAYS = -30;
-        const EXTENDED_PERIOD_TYPES = ['S1【予定】', 'アンバサダー【予定】'];
-
+    async function fetchRawSupabaseEvents() {
         try {
             const { data, error } = await supabase
                 .from('EventDB')
@@ -2263,43 +2256,95 @@
                 console.error('Supabase fetch error:', error);
                 return [];
             }
-            
-            const filteredData = data.filter(evt => {
-                const eventDateParsed = parseDate(evt.date);
-                if (!eventDateParsed) return false;
 
-                const eventDate = new Date(eventDateParsed.year, eventDateParsed.month - 1, eventDateParsed.day);
-                eventDate.setHours(0, 0, 0, 0); 
-
-                const isExtendedType = EXTENDED_PERIOD_TYPES.some(type => (evt.type || '').includes(type));
-                const pastDays = isExtendedType ? EXTENDED_PAST_DAYS : DEFAULT_PAST_DAYS;
-
-                const targetDate = new Date(today);
-                targetDate.setDate(today.getDate() - pastDays);
-                
-                return eventDate.getTime() >= targetDate.getTime();
-            });
-            
-            return filteredData.map(evt => ({
-                name: evt.name,
-                date: formatDate(evt.date), 
-                time: formatTime(evt.time),
-                location: evt.location,
-                address: evt.address,
-                type: evt.type || '交流会', 
-                fee: evt.fee,
-                capacity: evt.capacity,
-                eligibility: evt.eligibility,
-                entry: evt.entry,
-                detailTitle: evt.detailTitle,
-                details: evt.details,
-                tel: evt.tel,
-                link: evt.link,
-            }));
+            return data;
         } catch (err) {
             console.error('Supabase connection failed:', err);
             return [];
         }
+    }
+
+    // events.json(公式ページ由来)の中から「アンバサダーイベント」シリーズの
+    // 最も遅い開催日を取得する。該当イベントが1件も無い場合はnullを返す。
+    function getAmbassadorOfficialMaxDate(jsonEvents) {
+        let maxDate = null;
+
+        (jsonEvents || []).forEach(evt => {
+            const evtType = evt.type || '';
+            if (!evtType.includes('アンバサダーイベント')) return;
+
+            const parsed = parseDate(evt.date);
+            if (!parsed) return;
+
+            const d = new Date(parsed.year, parsed.month - 1, parsed.day);
+            d.setHours(0, 0, 0, 0);
+
+            if (!maxDate || d.getTime() > maxDate.getTime()) {
+                maxDate = d;
+            }
+        });
+
+        return maxDate;
+    }
+
+    // Supabase(EventDB)の生データを、種別ごとの掲載終了ルールでフィルタし、
+    // 表示用の形式にマッピングする。
+    //   - S1【予定】        : 従来通り「30日前」までの仮登録データを掲載する(仕様変更なし)
+    //   - アンバサダー【予定】 : 公式(events.json)の「アンバサダーイベント」の
+    //                        最も遅い開催日より"先"の情報のみ掲載する
+    //                        (公式側に該当イベントが無ければ全件掲載継続)
+    //   - それ以外           : 従来通り「前日」までの仮登録データを掲載する
+    function filterAndMapSupabaseEvents(rawData, ambassadorMaxDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const DEFAULT_PAST_DAYS = 1;
+        const S1_EXTENDED_PAST_DAYS = -30;
+        const S1_EXTENDED_TYPE = 'S1【予定】';
+        const AMBASSADOR_EXTENDED_TYPE = 'アンバサダー【予定】';
+
+        const filteredData = (rawData || []).filter(evt => {
+            const eventDateParsed = parseDate(evt.date);
+            if (!eventDateParsed) return false;
+
+            const eventDate = new Date(eventDateParsed.year, eventDateParsed.month - 1, eventDateParsed.day);
+            eventDate.setHours(0, 0, 0, 0);
+
+            const evtType = evt.type || '';
+
+            if (evtType.includes(AMBASSADOR_EXTENDED_TYPE)) {
+                // 公式に「アンバサダーイベント」の掲載が無い場合は掲載を継続する
+                if (!ambassadorMaxDate) return true;
+                // 公式の最も遅い開催日より後(先)の情報のみ掲載継続、
+                // それ以前は公式側で掲載済みとみなし掲載終了とする
+                return eventDate.getTime() > ambassadorMaxDate.getTime();
+            }
+
+            const isS1Extended = evtType.includes(S1_EXTENDED_TYPE);
+            const pastDays = isS1Extended ? S1_EXTENDED_PAST_DAYS : DEFAULT_PAST_DAYS;
+
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() - pastDays);
+
+            return eventDate.getTime() >= targetDate.getTime();
+        });
+
+        return filteredData.map(evt => ({
+            name: evt.name,
+            date: formatDate(evt.date), 
+            time: formatTime(evt.time),
+            location: evt.location,
+            address: evt.address,
+            type: evt.type || '交流会', 
+            fee: evt.fee,
+            capacity: evt.capacity,
+            eligibility: evt.eligibility,
+            entry: evt.entry,
+            detailTitle: evt.detailTitle,
+            details: evt.details,
+            tel: evt.tel,
+            link: evt.link,
+        }));
     }
 
     
@@ -2361,12 +2406,17 @@ async function fetchProductEvents() {
                     return [];
                 });
 
-            const [jsonEvents, supabaseEvents, productEvents] = await Promise.all([
+            const [jsonEvents, rawSupabaseEvents, productEvents] = await Promise.all([
                 jsonPromise,
-                fetchSupabaseEvents(),
+                fetchRawSupabaseEvents(),
                 fetchProductEvents()
             ]);
-            
+
+            // events.json(公式)内の「アンバサダーイベント」の最も遅い開催日を基準に
+            // supabase側「アンバサダー【予定】」の掲載終了/継続を判定する(S1とは別処理)
+            const ambassadorMaxDate = getAmbassadorOfficialMaxDate(jsonEvents);
+            const supabaseEvents = filterAndMapSupabaseEvents(rawSupabaseEvents, ambassadorMaxDate);
+
             const combinedEvents = [...jsonEvents, ...supabaseEvents, ...productEvents];
             
             ALL_BEYBLADE_EVENTS = combinedEvents
