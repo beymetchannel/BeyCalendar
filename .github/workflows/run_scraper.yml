@@ -2,9 +2,9 @@ name: Auto Scraper
 
 on:
   schedule:
-    - cron: '7 18 * * *'   # JST 3:07
-    - cron: '7 3 * * *'    # JST 12:07
-    - cron: '7 6 * * *'    # JST 15:07
+    - cron: '7 11 * * *'   # JST 20:07
+    - cron: '7 23 * * *'   # JST 8:07
+    - cron: '7 2 * * *'    # JST 11:07
   workflow_dispatch:
 
 jobs:
